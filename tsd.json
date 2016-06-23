@@ -13,6 +13,15 @@
     },
     "sinon/sinon.d.ts": {
       "commit": "ebfc7efb648a9a058c85bb496b295b9db2f90176"
+    },
+    "bluebird/bluebird.d.ts": {
+      "commit": "15b109941fd58d69943158f048211f2411173468"
+    },
+    "rx/rx.d.ts": {
+      "commit": "3ee59b28b6c492d59c42bafd880d2c4d64788cbb"
+    },
+    "rx/rx-lite.d.ts": {
+      "commit": "3ee59b28b6c492d59c42bafd880d2c4d64788cbb"
     }
   }
 }

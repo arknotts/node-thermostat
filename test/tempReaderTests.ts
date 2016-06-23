@@ -34,6 +34,7 @@ describe('Moving Average Temp Reader Unit Tests:', () => {
             });
 
             let tempReader = new MovingAverageTempReader(tempSensor, values.length, 1);
+            tempReader.start();
             
             let expectedAvg = 0;
             for(var i=0; i<values.length; i++) expectedAvg += values[i];
