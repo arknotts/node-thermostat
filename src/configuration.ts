@@ -1,7 +1,26 @@
 export interface IConfiguration {
-    PollDelay: number;
+    TargetRange: Array<number>;
+    Mode: ThermostatMode;
+    DefaultTarget: number;
 }
 
-export class Configuration {
-    public PollDelay: number;
+export enum ThermostatMode {
+    Heating,
+    Cooling
+}
+
+export class Configuration implements IConfiguration {
+    constructor(private _heatingTargetRange: Array<number>,
+                private _coolingTargetRange: Array<number>,
+                public Mode: ThermostatMode) {
+
+    }
+
+    get TargetRange(): Array<number> {
+        return this.Mode == ThermostatMode.Heating ? this._heatingTargetRange : this._coolingTargetRange;
+    }
+
+    get DefaultTarget(): number {
+        return this.Mode == ThermostatMode.Heating ? this._heatingTargetRange[0] : this._coolingTargetRange[1];
+    }
 }
