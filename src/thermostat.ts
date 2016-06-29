@@ -2,6 +2,7 @@ import { ITempReader } from './tempReader';
 import { IConfiguration, ThermostatMode } from './configuration';
 import { MovingAverageTempReader } from './tempReader';
 import { Dht11TempSensor } from './tempSensor';
+import { ITrigger } from './trigger';
 
 export class Thermostat {
 
@@ -10,7 +11,7 @@ export class Thermostat {
     private _startTime: Date;
     private _stopTime: Date;
 
-    constructor(private _configuration: IConfiguration, private _tempReader: ITempReader) {
+    constructor(private _configuration: IConfiguration, private _tempReader: ITempReader, private _furnaceTrigger: ITrigger) {
         this.setTarget(this._configuration.DefaultTarget);
     }
 
@@ -20,14 +21,12 @@ export class Thermostat {
 
     start() {
         this._tempReader.start().subscribe(
-            this.tempReceived,
+            (t:number) => this.tempReceived(t),
             function (error) { console.log('Error reading temperature: %s', error); }
         );
     }
 
     tempReceived(temp: number) {
-        console.log("temp: ", temp);
-
         if(this._configuration.Mode == ThermostatMode.Heating) {
             if(temp < this.target - 1) {
                 this.startFurnace();
@@ -42,6 +41,7 @@ export class Thermostat {
     startFurnace() {
         if(!this.isRunning()) {
             this._startTime = new Date();
+            this._furnaceTrigger.start();
         }
         //TODO
     }

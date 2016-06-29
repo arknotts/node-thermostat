@@ -27,12 +27,16 @@ export class MovingAverageTempReader implements ITempReader {
     }
 
     pollSensor(): void {
-        this._movingAverage.push(this._tempSensor.current());
-        if(this._movingAverage.length > this._movingAverageLength) {
-            this._movingAverage.shift();
-        }
+        let currentTemperature = this._tempSensor.current();
 
-        this._observer.onNext(this.current());
+        if(!isNaN(currentTemperature)) {
+            this._movingAverage.push(currentTemperature);
+            if(this._movingAverage.length > this._movingAverageLength) {
+                this._movingAverage.shift();
+            }
+
+            this._observer.onNext(this.current());
+        }
 
         setTimeout(() => { this.pollSensor(); }, this._pollDelay);
     }

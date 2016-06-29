@@ -43,19 +43,20 @@ describe('Moving Average Temp Reader Unit Tests:', () => {
     });
 
     describe('adding more values than the moving average length', () => {
-        it('should not exceed moving average length', (done) => {
+        it('should take average of last set of values', (done) => {
             let tempSensor: ITempSensor = new Dht11TempSensor();
-            let values: Array<number> = [68,69,70,71,72];
+            let values: Array<number> = [68,69,70,71,72,73,74,75,76,77];
+            let movingAvgLength = 5;
             let numValues = values.length;
             let expectedAvg = 0;
-            for(var i=0; i<numValues; i++) expectedAvg += values[i];
-            expectedAvg /= numValues;
+            for(var i=numValues-1; i >= numValues-movingAvgLength; i--) expectedAvg += values[i];
+            expectedAvg /= movingAvgLength;
 
             sinon.stub(tempSensor, "current", function() {
                 return values.shift();
             });
 
-            let tempReader = new MovingAverageTempReader(tempSensor, numValues, 1);
+            let tempReader = new MovingAverageTempReader(tempSensor, movingAvgLength, 1);
             
             let count = 0;
             tempReader.start().subscribe(
