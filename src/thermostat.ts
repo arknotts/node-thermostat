@@ -11,7 +11,11 @@ export class Thermostat {
     private _startTime: Date;
     private _stopTime: Date;
 
-    constructor(private _configuration: IConfiguration, private _tempReader: ITempReader, private _furnaceTrigger: ITrigger) {
+    constructor(private _configuration: IConfiguration, 
+                private _tempReader: ITempReader, 
+                private _furnaceTrigger: ITrigger, 
+                private _acTrigger: ITrigger) {
+
         this.setTarget(this._configuration.DefaultTarget);
     }
 
@@ -26,15 +30,28 @@ export class Thermostat {
         );
     }
 
+    stop() {
+        this._tempReader.stop();
+    }
+
     tempReceived(temp: number) {
         if(this._configuration.Mode == ThermostatMode.Heating) {
             if(temp < this.target - 1) {
+                this._targetOvershootBy = Math.min(this.target - temp, this._configuration.MaxOvershootTemp)
                 this.startFurnace();
             }
-            //else if(temp >= this.target)
+            else if(temp >= this.target + this._targetOvershootBy) {
+                this.stopFurnace();
+            }
         }
         else { //cooling
-            //TODO
+            if(temp > this.target + 1) {
+                this._targetOvershootBy = Math.min(temp - this.target, this._configuration.MaxOvershootTemp)
+                this.startAc();
+            }
+            else if(temp <= this.target - this._targetOvershootBy) {
+                this.stopAc();
+            }
         }
     }
 
@@ -43,14 +60,29 @@ export class Thermostat {
             this._startTime = new Date();
             this._furnaceTrigger.start();
         }
-        //TODO
     }
 
     stopFurnace() {
-        this._startTime = null;
-        this._stopTime = new Date();
-        
-        //TODO
+        if(this.isRunning()) {
+            this._startTime = null;
+            this._stopTime = new Date();
+            this._furnaceTrigger.stop();
+        }
+    }
+
+    startAc() {
+        if(!this.isRunning()) {
+            this._startTime = new Date();
+            this._acTrigger.start();
+        }
+    }
+
+    stopAc() {
+        if(this.isRunning()) {
+            this._startTime = null;
+            this._stopTime = new Date();
+            this._acTrigger.stop();
+        }
     }
 
     isRunning(): boolean {

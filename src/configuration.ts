@@ -2,6 +2,7 @@ export interface IConfiguration {
     TargetRange: Array<number>;
     Mode: ThermostatMode;
     DefaultTarget: number;
+    MaxOvershootTemp: number;
 }
 
 export enum ThermostatMode {
@@ -12,7 +13,8 @@ export enum ThermostatMode {
 export class Configuration implements IConfiguration {
     constructor(private _heatingTargetRange: Array<number>,
                 private _coolingTargetRange: Array<number>,
-                public Mode: ThermostatMode) {
+                public Mode: ThermostatMode,
+                public MaxOvershootTemp: number) {
 
     }
 

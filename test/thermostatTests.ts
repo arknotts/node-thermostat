@@ -8,7 +8,7 @@ import { ITempReader, MovingAverageTempReader } from '../src/tempReader';
 import { ITempSensor, Dht11TempSensor } from '../src/tempSensor';
 import { Thermostat } from '../src/thermostat';
 import { IConfiguration, Configuration, ThermostatMode } from '../src/configuration';
-import { ITrigger, FurnaceTrigger } from '../src/trigger';
+import { ITrigger, FurnaceTrigger, AcTrigger } from '../src/trigger';
 
 var expect = chai.expect;
 
@@ -22,17 +22,19 @@ describe('Thermostat Unit Tests:', () => {
     let tempRdr: ITempReader;
     let thermostat: Thermostat;
     let furnaceTrigger: ITrigger;
+    let acTrigger: ITrigger;
 
     beforeEach(function() {
         heatingRange = [55,75];
         coolingRange = [68,80];
 
-        cfg = new Configuration(heatingRange, coolingRange, ThermostatMode.Heating);
+        cfg = new Configuration(heatingRange, coolingRange, ThermostatMode.Heating, 1);
 
         tempSensor = new Dht11TempSensor();
         tempRdr = new MovingAverageTempReader(tempSensor, 5, 1);
         furnaceTrigger = new FurnaceTrigger();
-        thermostat = new Thermostat(cfg, tempRdr, furnaceTrigger);
+        acTrigger = new AcTrigger();
+        thermostat = new Thermostat(cfg, tempRdr, furnaceTrigger, acTrigger);
     });
 
     describe('creating new thermostat', () => {
@@ -71,9 +73,158 @@ describe('Thermostat Unit Tests:', () => {
 
             let startCalled: boolean = false;
             sinon.stub(furnaceTrigger, "start", function() {
-                console.log('start!');
                 startCalled = true;
                 done();
+            });
+
+            thermostat.start();
+        });
+    });
+
+    describe('temperature staying above target', () => {
+        it('should not start furnace', (done) => {
+            let temperatureValues = [71,70,69,70,71,70,70,72,71];
+            thermostat.setTarget(70);
+            let startCalled: boolean = false;
+
+            sinon.stub(tempSensor, "current", () => {
+                if(temperatureValues.length > 0) {
+                    return temperatureValues.shift();
+                }
+                else if(!startCalled) {
+                    thermostat.stop();
+                    done();
+                }
+                else {
+                    throw new Error("furnace started when it shouldn't have");
+                }
+            });
+            
+            sinon.stub(furnaceTrigger, "start", function() {
+                startCalled = true;
+            });
+
+            thermostat.start();
+        });
+    });
+
+    describe('temperature rising above target + overshoot temp', () => {
+        it('should stop furnace', (done) => {
+            let temperatureValues = [67,68,69,70,71,72,73,74,75,76,77];
+            thermostat.setTarget(70);
+            let startCalled: boolean = false;
+            let stopCalled: boolean = false;
+
+            sinon.stub(tempSensor, "current", () => {
+                if(temperatureValues.length > 0) {
+                    return temperatureValues.shift();
+                }
+                else if(!stopCalled) {
+                    throw new Error("Stop furnace never called.");
+                }
+            });
+            
+            sinon.stub(furnaceTrigger, "start", function() {
+                startCalled = true;
+            });
+
+            sinon.stub(furnaceTrigger, "stop", function() {
+                if(!stopCalled) {
+                    stopCalled = true;
+                    if(startCalled) {
+                        done();
+                    }
+                    else {
+                        throw new Error("Stop furnace called before start.");
+                    }
+                }
+            });
+
+            thermostat.start();
+        });
+    });
+
+    // ------------- Air Conditioning --------------- //
+
+    describe('temperature rising above target', () => {
+        it('should start air conditioner', (done) => {
+            let temperatureValues = [66,67,68,69,70,71,72,73,74,75,76,77];
+            thermostat.setMode(ThermostatMode.Cooling);
+            thermostat.setTarget(70);
+
+            sinon.stub(tempSensor, "current", function() {
+                return temperatureValues.shift();
+            });
+
+            let startCalled: boolean = false;
+            sinon.stub(acTrigger, "start", function() {
+                startCalled = true;
+                done();
+            });
+
+            thermostat.start();
+        });
+    });
+
+    describe('temperature staying below target', () => {
+        it('should not start air conditioner', (done) => {
+            let temperatureValues = [71,70,69,70,71,70,70,72,71];
+            thermostat.setMode(ThermostatMode.Cooling);
+            thermostat.setTarget(73);
+            let startCalled: boolean = false;
+
+            sinon.stub(tempSensor, "current", () => {
+                if(temperatureValues.length > 0) {
+                    return temperatureValues.shift();
+                }
+                else if(!startCalled) {
+                    thermostat.stop();
+                    done();
+                }
+                else {
+                    throw new Error("air conditioner started when it shouldn't have");
+                }
+            });
+            
+            sinon.stub(acTrigger, "start", function() {
+                startCalled = true;
+            });
+
+            thermostat.start();
+        });
+    });
+
+    describe('temperature falling below target - overshoot temp', () => {
+        it('should stop air conditioner', (done) => {
+            let temperatureValues = [77,76,75,74,73,72,71,70,69,68,67,66,65];
+            thermostat.setMode(ThermostatMode.Cooling);
+            thermostat.setTarget(70);
+            let startCalled: boolean = false;
+            let stopCalled: boolean = false;
+
+            sinon.stub(tempSensor, "current", () => {
+                if(temperatureValues.length > 0) {
+                    return temperatureValues.shift();
+                }
+                else if(!stopCalled) {
+                    throw new Error("Stop air conditioner never called.");
+                }
+            });
+            
+            sinon.stub(acTrigger, "start", function() {
+                startCalled = true;
+            });
+
+            sinon.stub(acTrigger, "stop", function() {
+                if(!stopCalled) {
+                    stopCalled = true;
+                    if(startCalled) {
+                        done();
+                    }
+                    else {
+                        throw new Error("Stop air conditioner called before start.");
+                    }
+                }
             });
 
             thermostat.start();

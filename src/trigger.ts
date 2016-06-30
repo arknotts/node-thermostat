@@ -12,3 +12,13 @@ export class FurnaceTrigger implements ITrigger {
         
     }
 }
+
+export class AcTrigger implements ITrigger {
+    start() {
+
+    }
+
+    stop() {
+        
+    }
+}
