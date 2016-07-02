@@ -37,6 +37,9 @@ export class Thermostat {
     tempReceived(temp: number) {
         if(this._configuration.Mode == ThermostatMode.Heating) {
             if(temp < this.target - 1) {
+                if(this.isRunning() && new Date().getMilliseconds() - this._startTime.getMilliseconds() > this._configuration.MaxRunTime) {
+                    this.stopFurnace();
+                }
                 this._targetOvershootBy = Math.min(this.target - temp, this._configuration.MaxOvershootTemp)
                 this.startFurnace();
             }

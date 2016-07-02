@@ -28,7 +28,7 @@ describe('Thermostat Unit Tests:', () => {
         heatingRange = [55,75];
         coolingRange = [68,80];
 
-        cfg = new Configuration(heatingRange, coolingRange, ThermostatMode.Heating, 1);
+        cfg = new Configuration(heatingRange, coolingRange, ThermostatMode.Heating, 1, 2000, 100);
 
         tempSensor = new Dht11TempSensor();
         tempRdr = new MovingAverageTempReader(tempSensor, 5, 1);
@@ -36,6 +36,8 @@ describe('Thermostat Unit Tests:', () => {
         acTrigger = new AcTrigger();
         thermostat = new Thermostat(cfg, tempRdr, furnaceTrigger, acTrigger);
     });
+
+    // ------- General --------- //
 
     describe('creating new thermostat', () => {
         it('should default to safe values', (done) => {
@@ -61,6 +63,8 @@ describe('Thermostat Unit Tests:', () => {
             done();
         });
     });
+
+    // -------- Furnace --------- //
 
     describe('temperature dropping below target', () => {
         it('should start furnace', (done) => {
@@ -230,5 +234,52 @@ describe('Thermostat Unit Tests:', () => {
             thermostat.start();
         });
     });
-    
+
+    // -------- Failsafes ---------- //
+
+    describe('furnace running for longer than max run time', () => {
+        it('should stop furnace', (done) => {
+            thermostat.setTarget(70);
+            cfg.MaxRunTime = 10;
+	        var clock = sinon.useFakeTimers();  
+
+            sinon.stub(tempSensor, "current", () => {
+                return 65;
+            });
+
+            thermostat.start();
+
+            clock.tick(2);
+            expect(thermostat.isRunning()).is.true;
+            clock.tick(10);
+            expect(thermostat.isRunning()).is.false;
+            
+            done();
+        });
+    });
+
+    describe('when furnace stops running, it', () => {
+        it('should not run again until at least MinDelayBetweenRuns later', (done) => {
+            thermostat.setTarget(70);
+            cfg.MaxRunTime = 10;
+            var clock = sinon.useFakeTimers();
+            let startMillis: number;
+            let offMillis: number = null;
+
+            sinon.stub(tempSensor, "current", () => {
+                let currMillis = new Date().getMilliseconds();
+                if(currMillis > startMillis && thermostat.isRunning() && offMillis == null) {
+                    offMillis = new Date().getMilliseconds();
+                    return 75; //turn it off right after it starts running
+                }
+                else if(currMillis > offMillis && !thermostat.isRunning()) {
+                    return 65; //try and turn it back on
+                }
+                else {
+                    //if it reached here it has turned on again
+                    done();
+                }
+            });
+        });
+    });
 });

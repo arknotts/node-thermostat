@@ -3,6 +3,8 @@ export interface IConfiguration {
     Mode: ThermostatMode;
     DefaultTarget: number;
     MaxOvershootTemp: number;
+    MaxRunTime: number;
+    MinDelayBetweenRuns: number;
 }
 
 export enum ThermostatMode {
@@ -14,7 +16,9 @@ export class Configuration implements IConfiguration {
     constructor(private _heatingTargetRange: Array<number>,
                 private _coolingTargetRange: Array<number>,
                 public Mode: ThermostatMode,
-                public MaxOvershootTemp: number) {
+                public MaxOvershootTemp: number,
+                public MaxRunTime: number,
+                public MinDelayBetweenRuns: number) {
 
     }
 
