@@ -37,11 +37,14 @@ export class Thermostat {
     tempReceived(temp: number) {
         if(this._configuration.Mode == ThermostatMode.Heating) {
             if(temp < this.target - 1) {
-                if(this.isRunning() && new Date().getMilliseconds() - this._startTime.getMilliseconds() > this._configuration.MaxRunTime) {
+                if(this.isRunning() && Date.now() - this._startTime.getTime() > this._configuration.MaxRunTime) {
                     this.stopFurnace();
                 }
-                this._targetOvershootBy = Math.min(this.target - temp, this._configuration.MaxOvershootTemp)
-                this.startFurnace();
+
+                if(this.isFirstRun() || Date.now() - this._stopTime.getTime() > this._configuration.MinDelayBetweenRuns) {
+                    this._targetOvershootBy = Math.min(this.target - temp, this._configuration.MaxOvershootTemp)
+                    this.startFurnace();
+                }
             }
             else if(temp >= this.target + this._targetOvershootBy) {
                 this.stopFurnace();
@@ -113,6 +116,10 @@ export class Thermostat {
 
     private targetIsWithinBounds(target: number) {
         return target >= this._configuration.TargetRange[0] && target <= this._configuration.TargetRange[1];
+    }
+
+    private isFirstRun() {
+        return this._stopTime == null;
     }
 }
 

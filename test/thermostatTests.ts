@@ -279,8 +279,7 @@ describe('Thermostat Unit Tests:', () => {
             enum TestState {
                 NotYetStarted,
                 Started,
-                Stopped,
-                Restarted
+                Stopped
             }
 
             let testState = TestState.NotYetStarted;
@@ -289,20 +288,16 @@ describe('Thermostat Unit Tests:', () => {
                 //let currMillis = Date.now();
                 if(thermostat.isRunning()) {
                     if(testState == TestState.NotYetStarted) {
-                        console.log('running, not yet started');
                         testState = TestState.Started;
                     }
                     else if(testState == TestState.Stopped) {
-                        console.log('running, stopped');
-                        testState = TestState.Restarted;
                         expect(Date.now()).is.gte(offMillis + cfg.MinDelayBetweenRuns);
                         done();
                     }
                 }
                 else if(!thermostat.isRunning()) {
                     if(testState == TestState.Started) {
-                        console.log('not running, started');
-                        testState == TestState.Stopped;
+                        testState = TestState.Stopped;
                         offMillis = Date.now();
                     }
                 }
@@ -318,19 +313,6 @@ describe('Thermostat Unit Tests:', () => {
                 else if(testState == TestState.Stopped) {
                     return 65; //try and start it again
                 }
-
-                
-                // if(currMillis > startMillis && thermostat.isRunning() && offMillis == null) {
-                //     offMillis = Date.now();
-                //     return 75; //turn it off right after it starts running
-                // }
-                // else if(currMillis > offMillis && !thermostat.isRunning()) {
-                //     return 65; //try and turn it back on
-                // }
-                // else {
-                //     //if it reached here it has turned on again
-                //     done();
-                // }
             });
 
             thermostat.start();
