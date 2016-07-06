@@ -270,10 +270,8 @@ describe('Thermostat Unit Tests:', () => {
     describe('when furnace stops running, it', () => {
         it('should not run again until at least MinDelayBetweenRuns later', (done) => {
             thermostat.setTarget(70);
-            cfg.MaxRunTime = 10;
-            cfg.MinDelayBetweenRuns = 20;
-           // var clock = sinon.useFakeTimers();
-            //let startMillis: number;
+            cfg.MaxRunTime = 1;
+            cfg.MinDelayBetweenRuns = 5;
             let offMillis: number = null;
 
             enum TestState {
@@ -284,34 +282,30 @@ describe('Thermostat Unit Tests:', () => {
 
             let testState = TestState.NotYetStarted;
 
-            sinon.stub(tempSensor, "current", () => {
-                //let currMillis = Date.now();
-                if(thermostat.isRunning()) {
-                    if(testState == TestState.NotYetStarted) {
-                        testState = TestState.Started;
-                    }
-                    else if(testState == TestState.Stopped) {
-                        expect(Date.now()).is.gte(offMillis + cfg.MinDelayBetweenRuns);
-                        done();
-                    }
-                }
-                else if(!thermostat.isRunning()) {
-                    if(testState == TestState.Started) {
-                        testState = TestState.Stopped;
-                        offMillis = Date.now();
-                    }
-                }
-
-
-
+            sinon.stub(furnaceTrigger, "start", function() {
                 if(testState == TestState.NotYetStarted) {
-                    return 65; //start it
-                }
-                else if(testState == TestState.Started) {
-                    return 75; //turn it right back off
+                    testState = TestState.Started;
                 }
                 else if(testState == TestState.Stopped) {
-                    return 65; //try and start it again
+                    expect(Date.now()).is.gte(offMillis + cfg.MinDelayBetweenRuns);
+                    done();
+                }
+            });
+
+            sinon.stub(furnaceTrigger, "stop", function() {
+                testState = TestState.Stopped;
+                offMillis = Date.now();
+            });
+
+            sinon.stub(tempSensor, "current", () => {
+                if(testState == TestState.NotYetStarted) {
+                    return thermostat.target - 5; //start it
+                }
+                else if(testState == TestState.Started) {
+                    return thermostat.target + 5; //turn it right back off
+                }
+                else if(testState == TestState.Stopped) {
+                    return thermostat.target - 5; //try and start it again
                 }
             });
 
