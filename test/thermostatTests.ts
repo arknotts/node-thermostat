@@ -24,6 +24,8 @@ describe('Thermostat Unit Tests:', () => {
     let furnaceTrigger: ITrigger;
     let acTrigger: ITrigger;
 
+    let clock: Sinon.SinonFakeTimers;
+
     beforeEach(function() {
         heatingRange = [55,75];
         coolingRange = [68,80];
@@ -35,6 +37,13 @@ describe('Thermostat Unit Tests:', () => {
         furnaceTrigger = new FurnaceTrigger();
         acTrigger = new AcTrigger();
         thermostat = new Thermostat(cfg, tempRdr, furnaceTrigger, acTrigger);
+    });
+
+    afterEach(function() {
+        if(clock) {
+            clock.restore();
+            clock = null;
+        }
     });
 
     // ------- General --------- //
@@ -241,7 +250,7 @@ describe('Thermostat Unit Tests:', () => {
         it('should stop furnace', (done) => {
             thermostat.setTarget(70);
             cfg.MaxRunTime = 10;
-	        var clock = sinon.useFakeTimers();  
+	        clock = sinon.useFakeTimers();  
 
             sinon.stub(tempSensor, "current", () => {
                 return 65;
@@ -262,24 +271,69 @@ describe('Thermostat Unit Tests:', () => {
         it('should not run again until at least MinDelayBetweenRuns later', (done) => {
             thermostat.setTarget(70);
             cfg.MaxRunTime = 10;
-            var clock = sinon.useFakeTimers();
-            let startMillis: number;
+            cfg.MinDelayBetweenRuns = 20;
+           // var clock = sinon.useFakeTimers();
+            //let startMillis: number;
             let offMillis: number = null;
 
+            enum TestState {
+                NotYetStarted,
+                Started,
+                Stopped,
+                Restarted
+            }
+
+            let testState = TestState.NotYetStarted;
+
             sinon.stub(tempSensor, "current", () => {
-                let currMillis = new Date().getMilliseconds();
-                if(currMillis > startMillis && thermostat.isRunning() && offMillis == null) {
-                    offMillis = new Date().getMilliseconds();
-                    return 75; //turn it off right after it starts running
+                //let currMillis = Date.now();
+                if(thermostat.isRunning()) {
+                    if(testState == TestState.NotYetStarted) {
+                        console.log('running, not yet started');
+                        testState = TestState.Started;
+                    }
+                    else if(testState == TestState.Stopped) {
+                        console.log('running, stopped');
+                        testState = TestState.Restarted;
+                        expect(Date.now()).is.gte(offMillis + cfg.MinDelayBetweenRuns);
+                        done();
+                    }
                 }
-                else if(currMillis > offMillis && !thermostat.isRunning()) {
-                    return 65; //try and turn it back on
+                else if(!thermostat.isRunning()) {
+                    if(testState == TestState.Started) {
+                        console.log('not running, started');
+                        testState == TestState.Stopped;
+                        offMillis = Date.now();
+                    }
                 }
-                else {
-                    //if it reached here it has turned on again
-                    done();
+
+
+
+                if(testState == TestState.NotYetStarted) {
+                    return 65; //start it
                 }
+                else if(testState == TestState.Started) {
+                    return 75; //turn it right back off
+                }
+                else if(testState == TestState.Stopped) {
+                    return 65; //try and start it again
+                }
+
+                
+                // if(currMillis > startMillis && thermostat.isRunning() && offMillis == null) {
+                //     offMillis = Date.now();
+                //     return 75; //turn it off right after it starts running
+                // }
+                // else if(currMillis > offMillis && !thermostat.isRunning()) {
+                //     return 65; //try and turn it back on
+                // }
+                // else {
+                //     //if it reached here it has turned on again
+                //     done();
+                // }
             });
+
+            thermostat.start();
         });
     });
 });
