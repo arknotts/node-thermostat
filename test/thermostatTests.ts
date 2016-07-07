@@ -253,7 +253,7 @@ describe('Thermostat Unit Tests:', () => {
 	        clock = sinon.useFakeTimers();  
 
             sinon.stub(tempSensor, "current", () => {
-                return 65;
+                return thermostat.target - 5;
             });
 
             thermostat.start();
@@ -306,6 +306,75 @@ describe('Thermostat Unit Tests:', () => {
                 }
                 else if(testState == TestState.Stopped) {
                     return thermostat.target - 5; //try and start it again
+                }
+            });
+
+            thermostat.start();
+        });
+    });
+
+    describe('air conditioner running for longer than max run time', () => {
+        it('should stop air conditioner', (done) => {
+            thermostat.setTarget(70);
+            thermostat.setMode(ThermostatMode.Cooling);
+            cfg.MaxRunTime = 10;
+	        clock = sinon.useFakeTimers();  
+
+            sinon.stub(tempSensor, "current", () => {
+                return thermostat.target + 5;
+            });
+
+            thermostat.start();
+
+            clock.tick(2);
+            expect(thermostat.isRunning()).is.true;
+            clock.tick(10);
+            expect(thermostat.isRunning()).is.false;
+            
+            done();
+        });
+    });
+
+    describe('when air conditioner stops running, it', () => {
+        it('should not run again until at least MinDelayBetweenRuns later', (done) => {
+            thermostat.setTarget(70);
+            thermostat.setMode(ThermostatMode.Cooling);
+            cfg.MaxRunTime = 1;
+            cfg.MinDelayBetweenRuns = 5;
+            let offMillis: number = null;
+
+            enum TestState {
+                NotYetStarted,
+                Started,
+                Stopped
+            }
+
+            let testState = TestState.NotYetStarted;
+
+            sinon.stub(acTrigger, "start", function() {
+                if(testState == TestState.NotYetStarted) {
+                    testState = TestState.Started;
+                }
+                else if(testState == TestState.Stopped) {
+                    expect(Date.now()).is.gte(offMillis + cfg.MinDelayBetweenRuns);
+                    done();
+                }
+            });
+
+            sinon.stub(acTrigger, "stop", function() {
+                testState = TestState.Stopped;
+                offMillis = Date.now();
+            });
+
+            sinon.stub(tempSensor, "current", () => {
+                if(testState == TestState.NotYetStarted) {
+                    return thermostat.target + 5; //start it
+                }
+                else if(testState == TestState.Started) {
+                    return thermostat.target - 5; //turn it right back off
+                }
+                else if(testState == TestState.Stopped) {
+                    return thermostat.target + 5; //try and start it again
                 }
             });
 

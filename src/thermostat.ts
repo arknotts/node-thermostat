@@ -52,8 +52,14 @@ export class Thermostat {
         }
         else { //cooling
             if(temp > this.target + 1) {
-                this._targetOvershootBy = Math.min(temp - this.target, this._configuration.MaxOvershootTemp)
-                this.startAc();
+                if(this.isRunning() && Date.now() - this._startTime.getTime() > this._configuration.MaxRunTime) {
+                    this.stopAc();
+                }
+
+                if(this.isFirstRun() || Date.now() - this._stopTime.getTime() > this._configuration.MinDelayBetweenRuns) {
+                    this._targetOvershootBy = Math.min(temp - this.target, this._configuration.MaxOvershootTemp)
+                    this.startAc();
+                }
             }
             else if(temp <= this.target - this._targetOvershootBy) {
                 this.stopAc();
