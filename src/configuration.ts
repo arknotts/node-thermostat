@@ -1,10 +1,15 @@
-export interface IConfiguration {
+export interface ITempSensorConfiguration {
+    TemperatureSensorPollDelay: number;
+}
+
+export interface IThermostatConfiguration {
     TargetRange: Array<number>;
     Mode: ThermostatMode;
     DefaultTarget: number;
     MaxOvershootTemp: number;
     MaxRunTime: number;
     MinDelayBetweenRuns: number;
+    TempSensorConfiguration: ITempSensorConfiguration;
 }
 
 export enum ThermostatMode {
@@ -12,13 +17,15 @@ export enum ThermostatMode {
     Cooling
 }
 
-export class Configuration implements IConfiguration {
+export class ThermostatConfiguration implements IThermostatConfiguration {
+
     constructor(private _heatingTargetRange: Array<number>,
                 private _coolingTargetRange: Array<number>,
                 public Mode: ThermostatMode,
                 public MaxOvershootTemp: number,
                 public MaxRunTime: number,
-                public MinDelayBetweenRuns: number) {
+                public MinDelayBetweenRuns: number,
+                public TempSensorConfiguration: ITempSensorConfiguration) {
 
     }
 
@@ -29,4 +36,12 @@ export class Configuration implements IConfiguration {
     get DefaultTarget(): number {
         return this.Mode == ThermostatMode.Heating ? this._heatingTargetRange[0] : this._coolingTargetRange[1];
     }
+}
+
+export class TempSensorConfiguration implements ITempSensorConfiguration {
+
+    constructor(public TemperatureSensorPollDelay: number) {
+        
+    }
+
 }

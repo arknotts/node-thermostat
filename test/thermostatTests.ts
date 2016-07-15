@@ -7,7 +7,7 @@ import sinon = require('sinon');
 import { ITempReader, MovingAverageTempReader } from '../src/tempReader';
 import { ITempSensor, Dht11TempSensor } from '../src/tempSensor';
 import { Thermostat } from '../src/thermostat';
-import { IConfiguration, Configuration, ThermostatMode } from '../src/configuration';
+import { IThermostatConfiguration, ThermostatConfiguration, ThermostatMode, ITempSensorConfiguration, TempSensorConfiguration } from '../src/configuration';
 import { ITrigger, FurnaceTrigger, AcTrigger } from '../src/trigger';
 
 var expect = chai.expect;
@@ -17,7 +17,8 @@ describe('Thermostat Unit Tests:', () => {
     let heatingRange: Array<number>;
     let coolingRange: Array<number>;
 
-    let cfg: IConfiguration;
+    let cfg: IThermostatConfiguration;
+    let tempSensorCfg: ITempSensorConfiguration;
     let tempSensor: ITempSensor;
     let tempRdr: ITempReader;
     let thermostat: Thermostat;
@@ -30,9 +31,10 @@ describe('Thermostat Unit Tests:', () => {
         heatingRange = [55,75];
         coolingRange = [68,80];
 
-        cfg = new Configuration(heatingRange, coolingRange, ThermostatMode.Heating, 1, 2000, 100);
+        tempSensorCfg = new TempSensorConfiguration(1);
+        cfg = new ThermostatConfiguration(heatingRange, coolingRange, ThermostatMode.Heating, 1, 2000, 100, tempSensorCfg);
 
-        tempSensor = new Dht11TempSensor();
+        tempSensor = new Dht11TempSensor(tempSensorCfg);
         tempRdr = new MovingAverageTempReader(tempSensor, 5, 1);
         furnaceTrigger = new FurnaceTrigger();
         acTrigger = new AcTrigger();
@@ -80,7 +82,7 @@ describe('Thermostat Unit Tests:', () => {
             let temperatureValues = [71,70,69,68,67,66,65,64,63];
             thermostat.setTarget(70);
 
-            sinon.stub(tempSensor, "current", function() {
+            sinon.stub(tempSensor, "pollSensor", function() {
                 return temperatureValues.shift();
             });
 
@@ -100,7 +102,7 @@ describe('Thermostat Unit Tests:', () => {
             thermostat.setTarget(70);
             let startCalled: boolean = false;
 
-            sinon.stub(tempSensor, "current", () => {
+            sinon.stub(tempSensor, "pollSensor", () => {
                 if(temperatureValues.length > 0) {
                     return temperatureValues.shift();
                 }
@@ -128,7 +130,7 @@ describe('Thermostat Unit Tests:', () => {
             let startCalled: boolean = false;
             let stopCalled: boolean = false;
 
-            sinon.stub(tempSensor, "current", () => {
+            sinon.stub(tempSensor, "pollSensor", () => {
                 if(temperatureValues.length > 0) {
                     return temperatureValues.shift();
                 }
@@ -165,7 +167,7 @@ describe('Thermostat Unit Tests:', () => {
             thermostat.setMode(ThermostatMode.Cooling);
             thermostat.setTarget(70);
 
-            sinon.stub(tempSensor, "current", function() {
+            sinon.stub(tempSensor, "pollSensor", function() {
                 return temperatureValues.shift();
             });
 
@@ -186,7 +188,7 @@ describe('Thermostat Unit Tests:', () => {
             thermostat.setTarget(73);
             let startCalled: boolean = false;
 
-            sinon.stub(tempSensor, "current", () => {
+            sinon.stub(tempSensor, "pollSensor", () => {
                 if(temperatureValues.length > 0) {
                     return temperatureValues.shift();
                 }
@@ -215,7 +217,7 @@ describe('Thermostat Unit Tests:', () => {
             let startCalled: boolean = false;
             let stopCalled: boolean = false;
 
-            sinon.stub(tempSensor, "current", () => {
+            sinon.stub(tempSensor, "pollSensor", () => {
                 if(temperatureValues.length > 0) {
                     return temperatureValues.shift();
                 }
@@ -252,7 +254,7 @@ describe('Thermostat Unit Tests:', () => {
             cfg.MaxRunTime = 10;
 	        clock = sinon.useFakeTimers();  
 
-            sinon.stub(tempSensor, "current", () => {
+            sinon.stub(tempSensor, "pollSensor", () => {
                 return thermostat.target - 5;
             });
 
@@ -297,7 +299,7 @@ describe('Thermostat Unit Tests:', () => {
                 offMillis = Date.now();
             });
 
-            sinon.stub(tempSensor, "current", () => {
+            sinon.stub(tempSensor, "pollSensor", () => {
                 if(testState == TestState.NotYetStarted) {
                     return thermostat.target - 5; //start it
                 }
@@ -320,7 +322,7 @@ describe('Thermostat Unit Tests:', () => {
             cfg.MaxRunTime = 10;
 	        clock = sinon.useFakeTimers();  
 
-            sinon.stub(tempSensor, "current", () => {
+            sinon.stub(tempSensor, "pollSensor", () => {
                 return thermostat.target + 5;
             });
 
@@ -366,7 +368,7 @@ describe('Thermostat Unit Tests:', () => {
                 offMillis = Date.now();
             });
 
-            sinon.stub(tempSensor, "current", () => {
+            sinon.stub(tempSensor, "pollSensor", () => {
                 if(testState == TestState.NotYetStarted) {
                     return thermostat.target + 5; //start it
                 }

@@ -1,5 +1,5 @@
 import { ITempReader } from './tempReader';
-import { IConfiguration, ThermostatMode } from './configuration';
+import { IThermostatConfiguration, ThermostatMode } from './configuration';
 import { MovingAverageTempReader } from './tempReader';
 import { Dht11TempSensor } from './tempSensor';
 import { ITrigger } from './trigger';
@@ -10,13 +10,14 @@ export class Thermostat {
     private _targetOvershootBy: number;
     private _startTime: Date;
     private _stopTime: Date;
+    private _currentTrigger: ITrigger;
 
-    constructor(private _configuration: IConfiguration, 
+    constructor(private _configuration: IThermostatConfiguration, 
                 private _tempReader: ITempReader, 
                 private _furnaceTrigger: ITrigger, 
                 private _acTrigger: ITrigger) {
 
-        this.setTarget(this._configuration.DefaultTarget);
+        this.setMode(_configuration.Mode);
     }
 
     get target(): number {
@@ -34,66 +35,48 @@ export class Thermostat {
         this._tempReader.stop();
     }
 
+    private tryStartTrigger(temp: number) {
+        if(this.isRunning() && Date.now() - this._startTime.getTime() > this._configuration.MaxRunTime) {
+            this.stopTrigger();
+        }
+
+        if(this.isFirstRun() || Date.now() - this._stopTime.getTime() > this._configuration.MinDelayBetweenRuns) {
+            this._targetOvershootBy = Math.min(Math.abs(this.target - temp), this._configuration.MaxOvershootTemp)
+            this.startTrigger();
+        }
+    }
+
     tempReceived(temp: number) {
         if(this._configuration.Mode == ThermostatMode.Heating) {
             if(temp < this.target - 1) {
-                if(this.isRunning() && Date.now() - this._startTime.getTime() > this._configuration.MaxRunTime) {
-                    this.stopFurnace();
-                }
-
-                if(this.isFirstRun() || Date.now() - this._stopTime.getTime() > this._configuration.MinDelayBetweenRuns) {
-                    this._targetOvershootBy = Math.min(this.target - temp, this._configuration.MaxOvershootTemp)
-                    this.startFurnace();
-                }
+                this.tryStartTrigger(temp);
             }
             else if(temp >= this.target + this._targetOvershootBy) {
-                this.stopFurnace();
+                this.stopTrigger();
             }
         }
         else { //cooling
             if(temp > this.target + 1) {
-                if(this.isRunning() && Date.now() - this._startTime.getTime() > this._configuration.MaxRunTime) {
-                    this.stopAc();
-                }
-
-                if(this.isFirstRun() || Date.now() - this._stopTime.getTime() > this._configuration.MinDelayBetweenRuns) {
-                    this._targetOvershootBy = Math.min(temp - this.target, this._configuration.MaxOvershootTemp)
-                    this.startAc();
-                }
+                this.tryStartTrigger(temp);
             }
             else if(temp <= this.target - this._targetOvershootBy) {
-                this.stopAc();
+                this.stopTrigger();
             }
         }
     }
 
-    startFurnace() {
+    startTrigger() {
         if(!this.isRunning()) {
             this._startTime = new Date();
-            this._furnaceTrigger.start();
+            this._currentTrigger.start();
         }
     }
 
-    stopFurnace() {
+    stopTrigger() {
         if(this.isRunning()) {
             this._startTime = null;
             this._stopTime = new Date();
-            this._furnaceTrigger.stop();
-        }
-    }
-
-    startAc() {
-        if(!this.isRunning()) {
-            this._startTime = new Date();
-            this._acTrigger.start();
-        }
-    }
-
-    stopAc() {
-        if(this.isRunning()) {
-            this._startTime = null;
-            this._stopTime = new Date();
-            this._acTrigger.stop();
+            this._currentTrigger.stop();
         }
     }
 
@@ -118,6 +101,7 @@ export class Thermostat {
     setMode(mode: ThermostatMode) {
         this._configuration.Mode = mode;
         this.setTarget(this._configuration.DefaultTarget);
+        this._currentTrigger = mode == ThermostatMode.Heating ? this._furnaceTrigger : this._acTrigger;
     }
 
     private targetIsWithinBounds(target: number) {
