@@ -1,7 +1,3 @@
-/// <reference path="../typings/mocha/mocha.d.ts" />
-/// <reference path="../typings/chai/chai.d.ts" />
-/// <reference path="../typings/sinon/sinon.d.ts" />
-
 import chai = require('chai');
 import sinon = require('sinon');
 
@@ -20,8 +16,6 @@ describe('Moving Average Temp Reader Unit Tests:', () => {
     beforeEach(function() {
         tempSensorCfg = new TempSensorConfiguration(1);
         tempSensor = new Dht11TempSensor(tempSensorCfg);
-        
-        tempSensor = new Dht11TempSensor(tempSensorCfg);
         tempRdr = new MovingAverageTempReader(tempSensor, 5, 1);
     });
 
@@ -38,15 +32,15 @@ describe('Moving Average Temp Reader Unit Tests:', () => {
             });
 
             let tempReader = new MovingAverageTempReader(tempSensor, numValues, 1);
-            
+
             let count = 0;
             tempReader.start().subscribe(
-                function (x) { 
+                function (temp) { 
                     count++;
                     
                     if(count == numValues) 
                     {
-                        expect(tempReader.current()).to.equals(expectedAvg);
+                        expect(temp).to.equals(expectedAvg);
                         done();
                     }
                   }

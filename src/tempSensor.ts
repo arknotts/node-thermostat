@@ -33,6 +33,7 @@ export class Dht11TempSensor implements ITempSensor {
 
     private getTemperature(): void {
         let currentTemperature = this.pollSensor();
+        
         this._observer.onNext(currentTemperature);
 
         if(this._start) {

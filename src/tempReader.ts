@@ -1,5 +1,3 @@
-/// <reference path="../typings/rx/rx.d.ts" />
-
 import Rx = require('rx');
 
 import { ITempSensor } from './tempSensor';
@@ -23,12 +21,8 @@ export class MovingAverageTempReader implements ITempReader {
     start(): Rx.Observable<number> {
         this._start = true;
         return this._tempSensor.start();
-        //https://www.npmjs.com/package/rx-lite-aggregates
-            //.takeLast(this._movingAverageLength);
-        // return Rx.Observable.create<number>((observer) => {
-        //     this._observer = observer;
-        //     this.pollSensor();
-        // });
+            // .takeLast(this._movingAverageLength)
+             //.average();
     }
 
     stop() {
