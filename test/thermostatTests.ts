@@ -21,17 +21,19 @@ describe('Thermostat Unit Tests:', () => {
     let furnaceTrigger: ITrigger;
     let acTrigger: ITrigger;
 
+    let windowSize = 2;
+
     let clock: Sinon.SinonFakeTimers;
 
     beforeEach(function() {
         heatingRange = [55,75];
         coolingRange = [68,80];
 
-        tempSensorCfg = new TempSensorConfiguration(1);
+        tempSensorCfg = new TempSensorConfiguration(10);
         cfg = new ThermostatConfiguration(heatingRange, coolingRange, ThermostatMode.Heating, 1, 2000, 100, tempSensorCfg);
 
         tempSensor = new Dht11TempSensor(tempSensorCfg);
-        tempRdr = new MovingAverageTempReader(tempSensor, 5, 1);
+        tempRdr = new MovingAverageTempReader(tempSensor, windowSize, 1);
         furnaceTrigger = new FurnaceTrigger();
         acTrigger = new AcTrigger();
         thermostat = new Thermostat(cfg, tempRdr, furnaceTrigger, acTrigger);
@@ -60,7 +62,6 @@ describe('Thermostat Unit Tests:', () => {
 
     describe('setting target outside bounds', () => {
         it('should set to closest valid value', (done) => {
-
             thermostat.setTarget(heatingRange[0]-5); //set 5 under
             expect(thermostat.target).is.equals(heatingRange[0]);
 
@@ -94,7 +95,7 @@ describe('Thermostat Unit Tests:', () => {
 
     describe('temperature staying above target', () => {
         it('should not start furnace', (done) => {
-            let temperatureValues = [71,70,69,70,71,70,70,72,71];
+            let temperatureValues = [71,70,70,70,71,70,70,72,71];
             thermostat.setTarget(70);
             let startCalled: boolean = false;
 

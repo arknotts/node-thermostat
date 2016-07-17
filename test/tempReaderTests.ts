@@ -23,55 +23,32 @@ describe('Moving Average Temp Reader Unit Tests:', () => {
         it('should take the average', (done) => {
             let values: Array<number> = [68,69,70,71,72];
             let numValues = values.length;
-            let expectedAvg = 0;
-            for(var i=0; i<numValues; i++) expectedAvg += values[i];
-            expectedAvg /= numValues;
+            let expectedAvgs: Array<number> = new Array<number>();
+            let windowSize = 3;
+            let numWindows = numValues-windowSize+1;
+
+            for(var windowStart=0; windowStart<numWindows; windowStart++) {
+                let thisAvg = 0;
+                for(var i=windowStart; i<windowStart+windowSize; i++) {
+                    thisAvg += values[i];
+                }
+                expectedAvgs.push(thisAvg/windowSize);
+            }
 
             sinon.stub(tempSensor, "pollSensor", function() {
                 return values.shift();
             });
 
-            let tempReader = new MovingAverageTempReader(tempSensor, numValues, 1);
+            let tempReader = new MovingAverageTempReader(tempSensor, windowSize, 1);
 
             let count = 0;
             tempReader.start().subscribe(
                 function (temp) { 
+                    expect(temp).to.equals(expectedAvgs[count]);
                     count++;
                     
-                    if(count == numValues) 
+                    if(count == numWindows-1) 
                     {
-                        expect(temp).to.equals(expectedAvg);
-                        done();
-                    }
-                  }
-            );
-            
-        });
-    });
-
-    describe('adding more values than the moving average length', () => {
-        it('should take average of last set of values', (done) => {
-            let values: Array<number> = [68,69,70,71,72,73,74,75,76,77];
-            let movingAvgLength = 5;
-            let numValues = values.length;
-            let expectedAvg = 0;
-            for(var i=numValues-1; i >= numValues-movingAvgLength; i--) expectedAvg += values[i];
-            expectedAvg /= movingAvgLength;
-
-            sinon.stub(tempSensor, "pollSensor", function() {
-                return values.shift();
-            });
-
-            let tempReader = new MovingAverageTempReader(tempSensor, movingAvgLength, 1);
-            
-            let count = 0;
-            tempReader.start().subscribe(
-                function (x) { 
-                    count++;
-                    
-                    if(count == numValues) 
-                    {
-                        expect(tempReader.current()).to.equals(expectedAvg);
                         done();
                     }
                   }
