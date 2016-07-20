@@ -3,6 +3,7 @@ import { IThermostatConfiguration, ThermostatMode } from './configuration';
 import { MovingAverageTempReader } from './tempReader';
 import { Dht11TempSensor } from './tempSensor';
 import { ITrigger } from './trigger';
+import { IEventEmitter } from './eventEmitter';
 
 export class Thermostat {
 
@@ -15,7 +16,8 @@ export class Thermostat {
     constructor(private _configuration: IThermostatConfiguration, 
                 private _tempReader: ITempReader, 
                 private _furnaceTrigger: ITrigger, 
-                private _acTrigger: ITrigger) {
+                private _acTrigger: ITrigger,
+                private _eventEmitter: IEventEmitter) {
 
         this.setMode(_configuration.Mode);
     }
@@ -25,10 +27,16 @@ export class Thermostat {
     }
 
     start() {
-        this._tempReader.start().subscribe(
-            (t:number) => this.tempReceived(t),
-            function (error) { console.log('Error reading temperature: %s', error); }
+        let tempReaderObservable = this._tempReader.start();
+
+        tempReaderObservable.subscribe(
+            (temperature:number) => this.tempReceived(temperature),
+            function (error) { console.error('Error reading temperature: %s', error); }
         );
+
+        // tempReaderObservable.skipLastWithTime(this._configuration.TempEmitDelay).subscribe(
+        //     (temperature:number) => this._eventEmitter.emitEvent(['sensors', 'temperature', 'thermostat'], temperature.toString())
+        // )
     }
 
     stop() {
@@ -69,6 +77,7 @@ export class Thermostat {
         if(!this.isRunning()) {
             this._startTime = new Date();
             this._currentTrigger.start();
+            this.emitTriggerEvent(true);
         }
     }
 
@@ -77,6 +86,7 @@ export class Thermostat {
             this._startTime = null;
             this._stopTime = new Date();
             this._currentTrigger.stop();
+            this.emitTriggerEvent(false);
         }
     }
 
@@ -110,6 +120,14 @@ export class Thermostat {
 
     private isFirstRun() {
         return this._stopTime == null;
+    }
+
+    private emitTriggerEvent(start: boolean) {
+        let topics = ['thermostat'];
+        topics.push(this._configuration.Mode == ThermostatMode.Heating ? 'furnace' : 'ac');
+        let value = start ? 'on' : 'off';
+
+        this._eventEmitter.emitEvent(topics, value);
     }
 }
 

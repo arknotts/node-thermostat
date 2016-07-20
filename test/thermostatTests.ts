@@ -5,6 +5,7 @@ import { ITempSensor, Dht11TempSensor } from '../src/tempSensor';
 import { Thermostat } from '../src/thermostat';
 import { IThermostatConfiguration, ThermostatConfiguration, ThermostatMode, ITempSensorConfiguration, TempSensorConfiguration } from '../src/configuration';
 import { ITrigger, FurnaceTrigger, AcTrigger } from '../src/trigger';
+import { IEventEmitter } from '../src/eventEmitter';
 
 var expect = chai.expect;
 
@@ -20,6 +21,7 @@ describe('Thermostat Unit Tests:', () => {
     let thermostat: Thermostat;
     let furnaceTrigger: ITrigger;
     let acTrigger: ITrigger;
+    let eventEmitter: IEventEmitter;
 
     let tickDelay = 10;
     let windowSize = 2;
@@ -32,13 +34,16 @@ describe('Thermostat Unit Tests:', () => {
         coolingRange = [68,80];
 
         tempSensorCfg = new TempSensorConfiguration(tickDelay);
-        cfg = new ThermostatConfiguration(heatingRange, coolingRange, ThermostatMode.Heating, 1, 2000, 100, tempSensorCfg);
+        eventEmitter = <IEventEmitter>{
+            emitEvent(topics, value) {} //do nothing in most tests
+        };
+        cfg = new ThermostatConfiguration(heatingRange, coolingRange, ThermostatMode.Heating, 1, 2000, 100, tempSensorCfg, 5000);
 
         tempSensor = new Dht11TempSensor(tempSensorCfg);
         tempRdr = new MovingAverageTempReader(tempSensor, windowSize, 1);
         furnaceTrigger = new FurnaceTrigger();
         acTrigger = new AcTrigger();
-        thermostat = new Thermostat(cfg, tempRdr, furnaceTrigger, acTrigger);
+        thermostat = new Thermostat(cfg, tempRdr, furnaceTrigger, acTrigger, eventEmitter);
     });
 
     afterEach(function() {

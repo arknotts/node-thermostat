@@ -10,6 +10,8 @@ export interface IThermostatConfiguration {
     MaxRunTime: number;
     MinDelayBetweenRuns: number;
     TempSensorConfiguration: ITempSensorConfiguration;
+
+    TempEmitDelay: number;
 }
 
 export enum ThermostatMode {
@@ -25,7 +27,8 @@ export class ThermostatConfiguration implements IThermostatConfiguration {
                 public MaxOvershootTemp: number,
                 public MaxRunTime: number,
                 public MinDelayBetweenRuns: number,
-                public TempSensorConfiguration: ITempSensorConfiguration) {
+                public TempSensorConfiguration: ITempSensorConfiguration,
+                public TempEmitDelay: number) {
 
     }
 
