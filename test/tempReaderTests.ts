@@ -13,10 +13,12 @@ describe('Moving Average Temp Reader Unit Tests:', () => {
     let tempSensor: ITempSensor;
     let tempRdr: ITempReader;
 
+    let windowSize = 3;
+
     beforeEach(function() {
         tempSensorCfg = new TempSensorConfiguration(1);
         tempSensor = new Dht11TempSensor(tempSensorCfg);
-        tempRdr = new MovingAverageTempReader(tempSensor, 5, 1);
+        tempRdr = new MovingAverageTempReader(tempSensor, windowSize, 1);
     });
 
     describe('adding multiple values', () => {
@@ -24,7 +26,7 @@ describe('Moving Average Temp Reader Unit Tests:', () => {
             let values: Array<number> = [68,69,70,71,72];
             let numValues = values.length;
             let expectedAvgs: Array<number> = new Array<number>();
-            let windowSize = 3;
+            
             let numWindows = numValues-windowSize+1;
 
             for(var windowStart=0; windowStart<numWindows; windowStart++) {
@@ -39,12 +41,12 @@ describe('Moving Average Temp Reader Unit Tests:', () => {
                 return values.shift();
             });
 
-            let tempReader = new MovingAverageTempReader(tempSensor, windowSize, 1);
-
             let count = 0;
-            tempReader.start().subscribe(
+            tempRdr.start().subscribe(
                 function (temp) { 
-                    expect(temp).to.equals(expectedAvgs[count]);
+                    if(!isNaN(temp)) {
+                        expect(temp).equals(expectedAvgs[count]);
+                    }
                     count++;
                     
                     if(count == numWindows-1) 

@@ -27,6 +27,7 @@ describe('Thermostat Unit Tests:', () => {
     let clock: Sinon.SinonFakeTimers;
 
     beforeEach(function() {
+        console.log('before');
         heatingRange = [55,75];
         coolingRange = [68,80];
 
@@ -41,6 +42,7 @@ describe('Thermostat Unit Tests:', () => {
     });
 
     afterEach(function() {
+        console.log('after');
         if(clock) {
             clock.restore();
             clock = null;
@@ -94,33 +96,37 @@ describe('Thermostat Unit Tests:', () => {
         });
     });
 
-    //TODO this test is acting really odd right now, skipping temporarily
-    // describe.skip('temperature staying above target', () => {
-    //     it('should not start furnace', (done) => {
-    //         let temperatureValues = [71,70,70,70,71,70,70,72,71];
-    //         thermostat.setTarget(70);
-    //         let startCalled: boolean = false;
+    describe('temperature staying above target', () => {
+        it('should not start furnace', (done) => {
+            let temperatureValues = [71,70,70,70,71,70,70,72,71];
+            thermostat.setTarget(70);
+            let startCalled: boolean = false;
+            let finished: boolean = false;
 
-    //         sinon.stub(tempSensor, "pollSensor", () => {
-    //             if(temperatureValues.length > 0) {
-    //                 return temperatureValues.shift();
-    //             }
-    //             else if(!startCalled) {
-    //                 thermostat.stop();
-    //                 done();
-    //             }
-    //             else {
-    //                 throw new Error("furnace started when it shouldn't have");
-    //             }
-    //         });
+            sinon.stub(tempSensor, "pollSensor", () => {
+                if(temperatureValues.length > 0) {
+                    return temperatureValues.shift();
+                }
+                else if(!startCalled && !finished) {
+                    thermostat.stop();
+                    done();
+                    finished = true;
+                }
+                else {
+                    if(!finished) {
+                        done("furnace started when it shouldn't have");
+                        finished = true;
+                    }
+                }
+            });
             
-    //         sinon.stub(furnaceTrigger, "start", function() {
-    //             startCalled = true;
-    //         });
+            sinon.stub(furnaceTrigger, "start", function() {
+                startCalled = true;
+            });
 
-    //         thermostat.start();
-    //     });
-    // });
+            thermostat.start();
+        });
+    });
 
     describe('temperature rising above target + overshoot temp', () => {
         it('should stop furnace', (done) => {
@@ -134,7 +140,7 @@ describe('Thermostat Unit Tests:', () => {
                     return temperatureValues.shift();
                 }
                 else if(!stopCalled) {
-                    throw new Error("Stop furnace never called.");
+                    done("Stop furnace never called.");
                 }
             });
             
@@ -149,7 +155,7 @@ describe('Thermostat Unit Tests:', () => {
                        done();
                     }
                     else {
-                        throw new Error("Stop furnace called before start.");
+                        done("Stop furnace called before start.");
                     }
                 }
             });
@@ -201,7 +207,7 @@ describe('Thermostat Unit Tests:', () => {
                     }
                 }
                 else {
-                    throw new Error("air conditioner started when it shouldn't have");
+                    done("air conditioner started when it shouldn't have");
                 }
             });
             
@@ -226,7 +232,7 @@ describe('Thermostat Unit Tests:', () => {
                     return temperatureValues.shift();
                 }
                 else if(!stopCalled) {
-                    throw new Error("Stop air conditioner never called.");
+                    done("Stop air conditioner never called.");
                 }
             });
             
@@ -241,7 +247,7 @@ describe('Thermostat Unit Tests:', () => {
                         done();
                     }
                     else {
-                        throw new Error("Stop air conditioner called before start.");
+                        done("Stop air conditioner called before start.");
                     }
                 }
             });
