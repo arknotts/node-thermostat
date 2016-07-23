@@ -33,7 +33,7 @@ describe('Thermostat Unit Tests:', () => {
         coolingRange = [68,80];
 
         tempSensorCfg = new TempSensorConfiguration(tickDelay);
-        cfg = new ThermostatConfiguration(heatingRange, coolingRange, ThermostatMode.Heating, 1, 2000, 1000, tempSensorCfg, 5000);
+        cfg = new ThermostatConfiguration(heatingRange, coolingRange, ThermostatMode.Heating, 1, 2000, 5, tempSensorCfg, 5000);
 
         tempSensor = new Dht11TempSensor(tempSensorCfg);
         tempRdr = new MovingAverageTempReader(tempSensor, windowSize, 1);
@@ -311,7 +311,7 @@ describe('Thermostat Unit Tests:', () => {
         it('should not run again until at least MinDelayBetweenRuns later', (done) => {
             thermostat.setTarget(70);
             cfg.MaxRunTime = 1;
-            cfg.MinDelayBetweenRuns = 1000;
+            cfg.MinDelayBetweenRuns = 100;
             let offMillis: number = null;
 
             enum TestState {
