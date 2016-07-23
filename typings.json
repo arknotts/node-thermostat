@@ -1,9 +1,9 @@
 {
   "name": "thermostat",
   "globalDependencies": {
-    "mocha": "github:DefinitelyTyped/DefinitelyTyped/mocha/mocha.d.ts#123e3b210963156cb0e0abba382bf50dbc569c8f",
     "chai": "github:DefinitelyTyped/DefinitelyTyped/chai/chai.d.ts#123e3b210963156cb0e0abba382bf50dbc569c8f",
-    "sinon": "github:DefinitelyTyped/DefinitelyTyped/sinon/sinon.d.ts#ebfc7efb648a9a058c85bb496b295b9db2f90176",
-    "rx": "npm:rx/ts/rx.all.d.ts"
+    "mocha": "github:DefinitelyTyped/DefinitelyTyped/mocha/mocha.d.ts#123e3b210963156cb0e0abba382bf50dbc569c8f",
+    "rx": "npm:rx/ts/rx.all.d.ts",
+    "sinon": "github:DefinitelyTyped/DefinitelyTyped/sinon/sinon.d.ts#ebfc7efb648a9a058c85bb496b295b9db2f90176"
   }
 }

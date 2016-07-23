@@ -1,13 +1,14 @@
-import chai = require('chai');
-import sinon = require('sinon');
+import * as Rx from 'rx';
+import * as chai from 'chai';
+import * as sinon from 'sinon';
+var expect = chai.expect;
+
 import { ITempReader, MovingAverageTempReader } from '../src/tempReader';
 import { ITempSensor, Dht11TempSensor } from '../src/tempSensor';
 import { Thermostat } from '../src/thermostat';
 import { IThermostatConfiguration, ThermostatConfiguration, ThermostatMode, ITempSensorConfiguration, TempSensorConfiguration } from '../src/configuration';
 import { ITrigger, FurnaceTrigger, AcTrigger } from '../src/trigger';
-import { IEventEmitter } from '../src/eventEmitter';
-
-var expect = chai.expect;
+import { IThermostatEvent } from '../src/thermostatEvent';
 
 describe('Thermostat Unit Tests:', () => {
 
@@ -21,33 +22,54 @@ describe('Thermostat Unit Tests:', () => {
     let thermostat: Thermostat;
     let furnaceTrigger: ITrigger;
     let acTrigger: ITrigger;
-    let eventEmitter: IEventEmitter;
 
     let tickDelay = 10;
     let windowSize = 2;
 
     let clock: Sinon.SinonFakeTimers;
 
-    beforeEach(function() {
-        console.log('before');
+    function buildThermostat(): Rx.IPromise<Thermostat> {
         heatingRange = [55,75];
         coolingRange = [68,80];
 
         tempSensorCfg = new TempSensorConfiguration(tickDelay);
-        eventEmitter = <IEventEmitter>{
-            emitEvent(topics, value) {} //do nothing in most tests
-        };
-        cfg = new ThermostatConfiguration(heatingRange, coolingRange, ThermostatMode.Heating, 1, 2000, 100, tempSensorCfg, 5000);
+        cfg = new ThermostatConfiguration(heatingRange, coolingRange, ThermostatMode.Heating, 1, 2000, 1000, tempSensorCfg, 5000);
 
         tempSensor = new Dht11TempSensor(tempSensorCfg);
         tempRdr = new MovingAverageTempReader(tempSensor, windowSize, 1);
         furnaceTrigger = new FurnaceTrigger();
         acTrigger = new AcTrigger();
-        thermostat = new Thermostat(cfg, tempRdr, furnaceTrigger, acTrigger, eventEmitter);
+        thermostat = new Thermostat(cfg, tempRdr, furnaceTrigger, acTrigger);
+        
+        return Rx.Observable.just<Thermostat>(thermostat).toPromise();
+    }
+
+    function buildRunningThermostat(): Rx.Observable<Thermostat> {
+        buildThermostat();
+
+        let observer: Rx.Observer<Thermostat> = null;
+        let promise = Rx.Observable.create<Thermostat>((o) => {
+            observer = o;
+        });
+
+        sinon.stub(furnaceTrigger, 'start', () => {
+            observer.onNext(thermostat);
+        });
+
+        sinon.stub(tempSensor, 'pollSensor', () => {
+            return thermostat.target - 5;
+        });
+
+        thermostat.start();
+
+        return promise;
+    }
+
+    beforeEach(function() {
+        buildThermostat();
     });
 
     afterEach(function() {
-        console.log('after');
         if(clock) {
             clock.restore();
             clock = null;
@@ -289,7 +311,7 @@ describe('Thermostat Unit Tests:', () => {
         it('should not run again until at least MinDelayBetweenRuns later', (done) => {
             thermostat.setTarget(70);
             cfg.MaxRunTime = 1;
-            cfg.MinDelayBetweenRuns = 5;
+            cfg.MinDelayBetweenRuns = 1000;
             let offMillis: number = null;
 
             enum TestState {
@@ -305,7 +327,8 @@ describe('Thermostat Unit Tests:', () => {
                     testState = TestState.Started;
                 }
                 else if(testState == TestState.Stopped) {
-                    expect(Date.now()).is.gte(offMillis + cfg.MinDelayBetweenRuns);
+                    let now = Date.now();
+                    expect(now).is.gte(offMillis + cfg.MinDelayBetweenRuns);
                     done();
                 }
             });
@@ -398,6 +421,37 @@ describe('Thermostat Unit Tests:', () => {
             });
 
             thermostat.start();
+        });
+    });
+
+    describe('when trigger is started, it', () => {
+        it('should emit an "on" message', (done) => {
+            thermostat.start().subscribe((e: IThermostatEvent) => {
+                expect(e.topic.length).to.equal(2);
+                expect(e.topic[0]).to.equal('thermostat');
+                expect(e.topic[1]).to.equal('furnace');                
+                expect(e.message).to.equal('on');
+                done();
+            });
+
+            (<any>thermostat).startTrigger();
+        });
+    });
+
+    describe('when trigger is stopped, it', () => {
+        it('should emit an "off" message', (done) => {
+            
+            buildRunningThermostat().subscribe((runningThermostat) => {
+                runningThermostat.eventStream.subscribe((e: IThermostatEvent) => {
+                    expect(e.topic.length).to.equal(2);
+                    expect(e.topic[0]).to.equal('thermostat');
+                    expect(e.topic[1]).to.equal('furnace');                
+                    expect(e.message).to.equal('off');
+                    done();
+                }); 
+                (<any>thermostat).stopTrigger();
+            }); 
+
         });
     });
 });

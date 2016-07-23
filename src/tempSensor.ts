@@ -1,4 +1,4 @@
-import Rx = require('rx');
+import * as Rx from 'rx';
 
 import { ITempSensorConfiguration } from './configuration';
 

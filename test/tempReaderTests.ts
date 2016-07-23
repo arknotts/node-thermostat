@@ -1,5 +1,5 @@
-import chai = require('chai');
-import sinon = require('sinon');
+import * as chai from 'chai';
+import * as sinon from 'sinon';
 
 import { ITempReader, MovingAverageTempReader } from '../src/tempReader';
 import { ITempSensor, Dht11TempSensor } from '../src/tempSensor';

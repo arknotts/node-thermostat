@@ -1,9 +1,11 @@
+import * as Rx from 'rx';
+
 import { ITempReader } from './tempReader';
 import { IThermostatConfiguration, ThermostatMode } from './configuration';
 import { MovingAverageTempReader } from './tempReader';
 import { Dht11TempSensor } from './tempSensor';
 import { ITrigger } from './trigger';
-import { IEventEmitter } from './eventEmitter';
+import { IThermostatEvent, ThermostatEventType } from './thermostatEvent';
 
 export class Thermostat {
 
@@ -13,11 +15,13 @@ export class Thermostat {
     private _stopTime: Date;
     private _currentTrigger: ITrigger;
 
+    private _eventObserver: Rx.IObserver<IThermostatEvent>;
+    public eventStream: Rx.IObservable<IThermostatEvent>;
+
     constructor(private _configuration: IThermostatConfiguration, 
                 private _tempReader: ITempReader, 
                 private _furnaceTrigger: ITrigger, 
-                private _acTrigger: ITrigger,
-                private _eventEmitter: IEventEmitter) {
+                private _acTrigger: ITrigger) {
 
         this.setMode(_configuration.Mode);
     }
@@ -26,17 +30,18 @@ export class Thermostat {
         return this._target;
     }
 
-    start() {
+    start(): Rx.IObservable<IThermostatEvent> {
         let tempReaderObservable = this._tempReader.start();
+        this.eventStream = Rx.Observable.create<IThermostatEvent>((observer) => {
+            this._eventObserver = observer;
+        }); 
 
         tempReaderObservable.subscribe(
             (temperature:number) => this.tempReceived(temperature),
             function (error) { console.error('Error reading temperature: %s', error); }
         );
 
-        // tempReaderObservable.skipLastWithTime(this._configuration.TempEmitDelay).subscribe(
-        //     (temperature:number) => this._eventEmitter.emitEvent(['sensors', 'temperature', 'thermostat'], temperature.toString())
-        // )
+        return this.eventStream;
     }
 
     stop() {
@@ -73,7 +78,7 @@ export class Thermostat {
         }
     }
 
-    startTrigger() {
+    private startTrigger() {
         if(!this.isRunning()) {
             this._startTime = new Date();
             this._currentTrigger.start();
@@ -81,7 +86,7 @@ export class Thermostat {
         }
     }
 
-    stopTrigger() {
+    private stopTrigger() {
         if(this.isRunning()) {
             this._startTime = null;
             this._stopTime = new Date();
@@ -123,11 +128,17 @@ export class Thermostat {
     }
 
     private emitTriggerEvent(start: boolean) {
-        let topics = ['thermostat'];
-        topics.push(this._configuration.Mode == ThermostatMode.Heating ? 'furnace' : 'ac');
+        let topic = ['thermostat'];
+        topic.push(this._configuration.Mode == ThermostatMode.Heating ? 'furnace' : 'ac');
         let value = start ? 'on' : 'off';
 
-        this._eventEmitter.emitEvent(topics, value);
+        if(this._eventObserver != null) {
+            this._eventObserver.onNext(<IThermostatEvent>{
+                type: ThermostatEventType.Message,
+                topic: topic,
+                message: value
+            });
+        }
     }
 }
 
