@@ -30,6 +30,7 @@ export class MovingAverageTempReader implements ITempReader {
     }
 
     stop() {
+        this._tempSensor.stop();
         this._start = false;
     }
 

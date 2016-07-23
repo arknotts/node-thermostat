@@ -24,6 +24,10 @@ export class Dht11TempSensor implements ITempSensor {
     }
 
     stop() {
+        if(this._observer != null) {
+            this._observer.onCompleted();
+        }
+        
         this._start = false;
     }
 

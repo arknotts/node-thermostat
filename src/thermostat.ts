@@ -113,6 +113,10 @@ export class Thermostat {
         }
     }
 
+    get mode(): ThermostatMode {
+        return this._configuration.Mode;
+    }
+
     setMode(mode: ThermostatMode) {
         this._configuration.Mode = mode;
         this.setTarget(this._configuration.DefaultTarget);
