@@ -36,7 +36,7 @@ describe('Thermostat Unit Tests:', () => {
         cfg = new ThermostatConfiguration(heatingRange, coolingRange, ThermostatMode.Heating, 1, 2000, 5, tempSensorCfg, 5000);
 
         tempSensor = new Dht11TempSensor(tempSensorCfg);
-        tempRdr = new MovingAverageTempReader(tempSensor, windowSize, 1);
+        tempRdr = new MovingAverageTempReader(tempSensor, windowSize, 20);
         furnaceTrigger = new FurnaceTrigger();
         acTrigger = new AcTrigger();
         thermostat = new Thermostat(cfg, tempRdr, furnaceTrigger, acTrigger);
@@ -45,26 +45,31 @@ describe('Thermostat Unit Tests:', () => {
         return Rx.Observable.just<Thermostat>(thermostat).toPromise();
     }
 
-    function buildRunningThermostat(mode: ThermostatMode): Rx.Observable<Thermostat> {
-        buildThermostat(mode);
-
+    function buildRunningThermostat(mode: ThermostatMode): Rx.IObservable<Thermostat> {
         let observer: Rx.Observer<Thermostat> = null;
-        let promise = Rx.Observable.create<Thermostat>((o) => {
+        let observable = Rx.Observable.create<Thermostat>((o) => {
+            console.log('setting observer');
             observer = o;
         });
+        
+        buildThermostat(mode).then((builtThermostat) => {
+            builtThermostat.setTarget(70);
 
-        let trigger = mode == ThermostatMode.Heating ? furnaceTrigger : acTrigger;
-        sinon.stub(trigger, 'start', () => {
-            observer.onNext(thermostat);
+            let trigger = mode == ThermostatMode.Heating ? furnaceTrigger : acTrigger;
+            sinon.stub(trigger, 'start', () => {
+                console.log('started');
+                observer.onNext(builtThermostat);
+            });
+
+            sinon.stub(tempSensor, 'pollSensor', () => {
+                return builtThermostat.mode == ThermostatMode.Heating ? builtThermostat.target - 5 : builtThermostat.target + 5;
+            });
+
+            builtThermostat.start();
         });
 
-        sinon.stub(tempSensor, 'pollSensor', () => {
-            return thermostat.mode == ThermostatMode.Heating ? thermostat.target - 5 : thermostat.target + 5;
-        });
+        return observable;
 
-        thermostat.start();
-
-        return promise;
     }
 
     beforeEach(function() {
@@ -72,7 +77,7 @@ describe('Thermostat Unit Tests:', () => {
     });
 
     afterEach(function() {
-        thermostat.stop();
+        //thermostat.stop();
         if(clock) {
             clock.restore();
             clock = null;
@@ -441,10 +446,11 @@ describe('Thermostat Unit Tests:', () => {
         });
     });
 
-    describe('when furnace trigger is stopped, it', () => {
+    describe.only('when furnace trigger is stopped, it', () => {
         it('should emit an "off" message', (done) => {
             
             buildRunningThermostat(ThermostatMode.Heating).subscribe((runningThermostat) => {
+                console.log('built');
                 runningThermostat.eventStream.subscribe((e: IThermostatEvent) => {
                     expect(e.topic.length).to.equal(2);
                     expect(e.topic[0]).to.equal('thermostat');
@@ -487,4 +493,19 @@ describe('Thermostat Unit Tests:', () => {
             }); 
         });
     });
+
+    // describe('when thermostat is running, it', () => {
+    //     it('should emit a temperature message at the appropriate interval', (done) => {
+    //         buildRunningThermostat(ThermostatMode.Heating).subscribe((runningThermostat) => {
+    //             runningThermostat.eventStream.subscribe((e: IThermostatEvent) => {
+    //                 expect(e.topic.length).to.equal(2);
+    //                 expect(e.topic[0]).to.equal('thermostat');
+    //                 expect(e.topic[1]).to.equal('ac');                
+    //                 expect(e.message).to.equal('off');
+    //                 done();
+    //             }); 
+    //             (<any>thermostat).stopTrigger();
+    //         }); 
+    //     });
+    // });
 });

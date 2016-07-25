@@ -14,9 +14,10 @@ export class Dht11TempSensor implements ITempSensor {
     constructor(private _configuration: ITempSensorConfiguration) {
 
     }
-
+    
     start(): Rx.Observable<number> {
         this._start = true;
+        
         return Rx.Observable.create<number>((observer) => {
             this._observer = observer;
             this.getTemperature();
