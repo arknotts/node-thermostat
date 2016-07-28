@@ -18,7 +18,7 @@ describe('Moving Average Temp Reader Unit Tests:', () => {
     beforeEach(function() {
         tempSensorCfg = new TempSensorConfiguration(1);
         tempSensor = new Dht11TempSensor(tempSensorCfg);
-        tempRdr = new MovingAverageTempReader(tempSensor, windowSize, 1);
+        tempRdr = new MovingAverageTempReader(tempSensor, windowSize);
     });
 
     describe('adding multiple values', () => {

@@ -9,11 +9,11 @@ export interface ITempReader {
 
 export class MovingAverageTempReader implements ITempReader {
 
-    constructor(private _tempSensor: ITempSensor, private _movingAverageLength: number, private _pollDelay: number) {}
+    constructor(private _tempSensor: ITempSensor, private _windowSize: number) {}
 
     start(): Rx.Observable<number> {
         return this._tempSensor.start()
-                    .windowWithCount(this._movingAverageLength, 1)
+                    .windowWithCount(this._windowSize, 1)
                     .selectMany((temperatures) => {return temperatures.toArray();})
                     .map((temperatures) => {
                         let arrayAvg = temperatures.reduce((sum, a,i,ar) => { sum += a; return i==ar.length-1?(ar.length==0?0:sum/ar.length):sum},0);

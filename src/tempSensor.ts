@@ -5,44 +5,42 @@ import { ITempSensorConfiguration } from './configuration';
 export interface ITempSensor {
     start(): Rx.Observable<number>;
     stop(): void;
+    pollSensor(): number;
 }
 
 export class Dht11TempSensor implements ITempSensor {
-    private _observer: Rx.Observer<number>;
     private _start: boolean = false;
 
-    constructor(private _configuration: ITempSensorConfiguration) {
-
-    }
+    constructor(private _configuration: ITempSensorConfiguration) {}
     
     start(): Rx.Observable<number> {
         this._start = true;
         
         return Rx.Observable.create<number>((observer) => {
-            this._observer = observer;
-            this.getTemperature();
+            this.pollAndEmitTemperature(observer);
         });
     }
 
     stop() {
-        if(this._observer != null) {
-            this._observer.onCompleted();
-        }
+        // if(this._observer != null) {
+        //     this._observer.onCompleted();
+        // }
         
         this._start = false;
     }
 
-    private pollSensor(): number {
+    pollSensor(): number {
         return 70;
     }
 
-    private getTemperature(): void {
-        let currentTemperature = this.pollSensor();
-        
-        this._observer.onNext(currentTemperature);
+    private pollAndEmitTemperature(observer: Rx.Observer<number>): void {
+        observer.onNext(this.pollSensor());
 
         if(this._start) {
-            setTimeout(() => { this.getTemperature(); }, this._configuration.TemperatureSensorPollDelay);
+            setTimeout(() => { this.pollAndEmitTemperature(observer); }, this._configuration.TemperatureSensorPollDelay);
+        }
+        else {
+            observer.onCompleted();
         }
     }
 }
