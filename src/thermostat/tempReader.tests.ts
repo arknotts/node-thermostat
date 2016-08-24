@@ -1,9 +1,9 @@
 import * as chai from 'chai';
 import * as sinon from 'sinon';
 
-import { ITempReader, MovingAverageTempReader } from '../src/tempReader';
-import { ITempSensor, Dht11TempSensor } from '../src/tempSensor';
-import { ITempSensorConfiguration, TempSensorConfiguration } from '../src/configuration';
+import { ITempReader, MovingAverageTempReader } from './tempReader';
+import { ITempSensor, Dht11TempSensor } from './tempSensor';
+import { ITempSensorConfiguration, TempSensorConfiguration } from './configuration';
 
 var expect = chai.expect;
 

@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "test": "mocha"
+    "test": "mocha src/thermostat",
+    "build-test": "npm run build && npm test"
   },
   "author": "",
   "license": "ISC",

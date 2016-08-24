@@ -4,12 +4,12 @@ import * as chai from 'chai';
 import * as sinon from 'sinon';
 var expect = chai.expect;
 
-import { ITempReader, MovingAverageTempReader } from '../src/tempReader';
-import { ITempSensor, Dht11TempSensor } from '../src/tempSensor';
-import { Thermostat } from '../src/thermostat';
-import { IThermostatConfiguration, ThermostatConfiguration, ThermostatMode, ITempSensorConfiguration, TempSensorConfiguration } from '../src/configuration';
-import { ITrigger, FurnaceTrigger, AcTrigger } from '../src/trigger';
-import { IThermostatEvent } from '../src/thermostatEvent';
+import { ITempReader, MovingAverageTempReader } from './tempReader';
+import { ITempSensor, Dht11TempSensor } from './tempSensor';
+import { Thermostat } from './thermostat';
+import { IThermostatConfiguration, ThermostatConfiguration, ThermostatMode, ITempSensorConfiguration, TempSensorConfiguration } from './configuration';
+import { ITrigger, FurnaceTrigger, AcTrigger } from './trigger';
+import { IThermostatEvent } from './thermostatEvent';
 
 describe('Thermostat Unit Tests:', () => {
 
@@ -174,6 +174,12 @@ describe('Thermostat Unit Tests:', () => {
 				});
 
 				thermostat.start();
+			});
+		});
+
+		describe.skip('starting furnace', () => {
+			it('should overshoot temperature', (done) => {
+
 			});
 		});
 
