@@ -42,20 +42,17 @@ describe('Moving Average Temp Reader Unit Tests:', () => {
             });
 
             let count = 0;
-            tempRdr.start().subscribe(
-                function (temp) { 
-                    if(!isNaN(temp)) {
-                        expect(temp).equals(expectedAvgs[count]);
-                    }
-                    count++;
-                    
-                    if(count == numWindows-1) 
-                    {
-                        done();
-                    }
-                  }
-            );
-            
+            tempRdr.start().subscribe((temp) => { 
+				if(!isNaN(temp)) {
+					expect(temp).equals(expectedAvgs[count]);
+				}
+				count++;
+
+				if(count == numWindows-1) 
+				{
+					done();
+				}
+			});
         });
     });
 });

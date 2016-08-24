@@ -1,4 +1,4 @@
-import * as Rx from 'rx';
+import Rx = require('@reactivex/rxjs');
 
 import { ITempSensorConfiguration } from './configuration';
 
@@ -10,13 +10,14 @@ export interface ITempSensor {
 
 export class Dht11TempSensor implements ITempSensor {
     private _start: boolean = false;
+    private _timeoutId: number;
 
     constructor(private _configuration: ITempSensorConfiguration) {}
     
     start(): Rx.Observable<number> {
         this._start = true;
         
-        return Rx.Observable.create<number>((observer) => {
+        return Rx.Observable.create((observer: Rx.Observer<number>) => {
             this.pollAndEmitTemperature(observer);
         });
     }
@@ -25,7 +26,6 @@ export class Dht11TempSensor implements ITempSensor {
         // if(this._observer != null) {
         //     this._observer.onCompleted();
         // }
-        
         this._start = false;
     }
 
@@ -34,13 +34,13 @@ export class Dht11TempSensor implements ITempSensor {
     }
 
     private pollAndEmitTemperature(observer: Rx.Observer<number>): void {
-        observer.onNext(this.pollSensor());
-
         if(this._start) {
-            setTimeout(() => { this.pollAndEmitTemperature(observer); }, this._configuration.TemperatureSensorPollDelay);
+            observer.next(this.pollSensor());
+            this._timeoutId = setTimeout(() => { this.pollAndEmitTemperature(observer); }, this._configuration.TemperatureSensorPollDelay);
         }
         else {
-            observer.onCompleted();
+            clearTimeout(this._timeoutId);
+            observer.complete();
         }
     }
 }

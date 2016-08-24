@@ -1,4 +1,4 @@
-import * as Rx from 'rx';
+import Rx = require('@reactivex/rxjs');
 
 import { ITempReader } from './tempReader';
 import { IThermostatConfiguration, ThermostatMode } from './configuration';
@@ -15,35 +15,33 @@ export class Thermostat {
     private _stopTime: Date;
     private _currentTrigger: ITrigger;
 
-    private _eventObserver: Rx.IObserver<IThermostatEvent>;
-    public eventStream: Rx.IObservable<IThermostatEvent>;
+    private _eventObservers: Rx.Observer<IThermostatEvent>[];
+    public eventStream: Rx.Observable<IThermostatEvent>;
 
     constructor(public configuration: IThermostatConfiguration, 
                 private _tempReader: ITempReader, 
                 private _furnaceTrigger: ITrigger, 
                 private _acTrigger: ITrigger) {
-
+				
         this.setMode(configuration.Mode);
+		this._eventObservers = [];
+        this.eventStream = Rx.Observable.create((observer: Rx.Observer<IThermostatEvent>) => {
+            this._eventObservers.push(observer);
+        }); 
     }
 
     get target(): number {
         return this._target;
     }
 
-    start(): Rx.IObservable<IThermostatEvent> {
+    start(): Rx.Observable<IThermostatEvent> {
         let tempReaderObservable = this._tempReader.start();
-        this.eventStream = Rx.Observable.create<IThermostatEvent>((observer) => {
-            this._eventObserver = observer;
-        }); 
-
+		
         tempReaderObservable.subscribe(
             (temperature:number) => this.tempReceived(temperature),
-            function (error) { console.error('Error reading temperature: %s', error); }
+            (error: string) => { console.error('Error reading temperature: %s', error); },
+            () => { this.emitComplete(); }
         );
-
-        tempReaderObservable.subscribe((temperature) => {
-            this.emitTemperatureEvent(temperature);
-        });
 
         return this.eventStream;
     }
@@ -54,9 +52,9 @@ export class Thermostat {
 
     private tryStartTrigger(temp: number) {
         if(this.isRunning() && Date.now() - this._startTime.getTime() > this.configuration.MaxRunTime) {
-            this.stopTrigger();
+           this.stopTrigger();
         }
-
+		
         if(this.isFirstRun() || Date.now() - this._stopTime.getTime() > this.configuration.MinDelayBetweenRuns) {
             this._targetOvershootBy = Math.min(Math.abs(this.target - temp), this.configuration.MaxOvershootTemp)
             this.startTrigger();
@@ -64,6 +62,7 @@ export class Thermostat {
     }
 
     tempReceived(temp: number) {
+		
         if(this.configuration.Mode == ThermostatMode.Heating) {
             if(temp < this.target - 1) {
                 this.tryStartTrigger(temp);
@@ -80,6 +79,8 @@ export class Thermostat {
                 this.stopTrigger();
             }
         }
+
+        this.emitTemperatureEvent(temp);
     }
 
     private startTrigger() {
@@ -104,16 +105,20 @@ export class Thermostat {
     }
 
     setTarget(target: number) {
-        if(this.targetIsWithinBounds(target)) {
-            this._target = target;
-        }
-        else {
-            if(target < this.configuration.TargetRange[0]) {
-                this._target = this.configuration.TargetRange[0];
+        if(target != this._target) {
+            if(this.targetIsWithinBounds(target)) {
+                this._target = target;
             }
-            else if(target > this.configuration.TargetRange[1]) {
-                this._target = this.configuration.TargetRange[1];
+            else {
+                if(target < this.configuration.TargetRange[0]) {
+                    this._target = this.configuration.TargetRange[0];
+                }
+                else if(target > this.configuration.TargetRange[1]) {
+                    this._target = this.configuration.TargetRange[1];
+                }
             }
+
+            this.emitTargetEvent(target);
         }
     }
 
@@ -155,9 +160,27 @@ export class Thermostat {
         });
     }
 
+    private emitTargetEvent(target: number) {
+        this.emitEvent(<IThermostatEvent>{
+            type: ThermostatEventType.Message,
+            topic: ['thermostat', 'target'],
+            message: target.toString()
+        });
+    }
+
     private emitEvent(event: IThermostatEvent) {
-        if(this._eventObserver != null) {
-            this._eventObserver.onNext(event);
+        if(this._eventObservers) {
+            this._eventObservers.forEach((observer) => {
+				observer.next(event);
+			});
+        }
+    }
+
+	private emitComplete() {
+        if(this._eventObservers) {
+            this._eventObservers.forEach((observer) => {
+				observer.complete();
+			});
         }
     }
 }

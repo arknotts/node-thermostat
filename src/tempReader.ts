@@ -1,4 +1,4 @@
-import * as Rx from 'rx';
+import Rx = require('@reactivex/rxjs');
 
 import { ITempSensor } from './tempSensor';
 
@@ -13,12 +13,13 @@ export class MovingAverageTempReader implements ITempReader {
 
     start(): Rx.Observable<number> {
         return this._tempSensor.start()
-                    .windowWithCount(this._windowSize, 1)
-                    .selectMany((temperatures) => {return temperatures.toArray();})
-                    .map((temperatures) => {
-                        let arrayAvg = temperatures.reduce((sum, a,i,ar) => { sum += a; return i==ar.length-1?(ar.length==0?0:sum/ar.length):sum},0);
-                        return arrayAvg;
-                    });
+                    .windowCount(this._windowSize, 1)
+					.map((x: Rx.Observable<number>) => {
+							return x.reduce((acc, num) => { return acc + num; })
+									.map((x: number) => { return x/(this._windowSize); })
+						}
+					)
+					.flatMap((v, i) => v);
     }
 
     stop() {
