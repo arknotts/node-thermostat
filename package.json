@@ -1,5 +1,5 @@
 {
-  "name": "@node-thermostat/core",
+  "name": "node-thermostat.core",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
