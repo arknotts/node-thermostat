@@ -1,11 +1,11 @@
 {
-  "name": "thermostat",
+  "name": "@node-thermostat/core",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "test": "mocha src/thermostat",
+    "test": "mocha src",
     "build-test": "npm run build && npm test"
   },
   "author": "",
