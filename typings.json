@@ -1,9 +1,16 @@
 {
   "name": "thermostat",
   "globalDependencies": {
+    "body-parser": "registry:dt/body-parser#0.0.0+20160619023215",
     "chai": "github:DefinitelyTyped/DefinitelyTyped/chai/chai.d.ts#123e3b210963156cb0e0abba382bf50dbc569c8f",
     "es6-shim": "registry:dt/es6-shim#0.31.2+20160602141504",
+    "express": "registry:dt/express#4.0.0+20160708185218",
+    "express-serve-static-core": "registry:dt/express-serve-static-core#4.0.0+20160819131900",
+    "mime": "registry:dt/mime#0.0.0+20160316155526",
     "mocha": "github:DefinitelyTyped/DefinitelyTyped/mocha/mocha.d.ts#123e3b210963156cb0e0abba382bf50dbc569c8f",
-    "sinon": "github:DefinitelyTyped/DefinitelyTyped/sinon/sinon.d.ts#ebfc7efb648a9a058c85bb496b295b9db2f90176"
+    "node": "registry:dt/node#6.0.0+20160823142437",
+    "serve-static": "registry:dt/serve-static#0.0.0+20160606155157",
+    "sinon": "github:DefinitelyTyped/DefinitelyTyped/sinon/sinon.d.ts#ebfc7efb648a9a058c85bb496b295b9db2f90176",
+    "socket.io": "registry:dt/socket.io#1.4.4+20160317120654"
   }
 }

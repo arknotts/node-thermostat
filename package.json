@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc",
     "test": "mocha src",
-    "build-test": "npm run build && npm test"
+    "build-test": "npm run build && npm test",
+    "serve": "node src/api/server.js",
+    "build-serve": "npm run build && npm run serve"
   },
   "author": "",
   "license": "ISC",
@@ -19,6 +21,9 @@
   },
   "dependencies": {
     "@reactivex/rxjs": "^5.0.0-beta.11",
-    "es6-shim": "^0.35.1"
+    "body-parser": "^1.15.2",
+    "es6-shim": "^0.35.1",
+    "express": "^4.14.0",
+    "socket.io": "^1.4.8"
   }
 }

@@ -10,7 +10,7 @@ export interface ITempSensor {
 
 export class Dht11TempSensor implements ITempSensor {
     private _start: boolean = false;
-    private _timeoutId: number;
+    private _timeoutId: any;
 
     constructor(private _configuration: ITempSensorConfiguration) {}
     
