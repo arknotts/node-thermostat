@@ -1,12 +1,12 @@
 import express = require('express');
 import bodyParser = require('body-parser');
 
-import { Thermostat } from '../thermostat';
-import { IThermostatConfiguration, ITempSensorConfiguration, ThermostatMode } from '../configuration';
-import { ITempReader, MovingAverageTempReader } from '../tempReader';
-import { ITempSensor, Dht11TempSensor } from '../tempSensor';
-import { ITrigger, FurnaceTrigger } from '../trigger';
-import { IThermostatEvent } from '../thermostatEvent';
+import { Thermostat } from '../core/thermostat';
+import { IThermostatConfiguration, ITempSensorConfiguration, ThermostatMode } from '../core/configuration';
+import { ITempReader, MovingAverageTempReader } from '../core/tempReader';
+import { ITempSensor, Dht11TempSensor } from '../core/tempSensor';
+import { ITrigger, FurnaceTrigger } from '../core/trigger';
+import { IThermostatEvent } from '../core/thermostatEvent';
 
 
 

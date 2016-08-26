@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "test": "mocha src",
+    "test": "mocha src/core",
     "build-test": "npm run build && npm test",
     "serve": "node src/api/server.js",
     "build-serve": "npm run build && npm run serve"
