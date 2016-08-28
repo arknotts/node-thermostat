@@ -16,16 +16,21 @@ var io = require('socket.io')(server);
 app.use(bodyParser.urlencoded({
   extended: true
 }));
+let path = require('path');
 
 let thermostat: Thermostat;
 
 io.on('connection', function (socket: any) {
 	if(thermostat) {
 		thermostat.eventStream.subscribe((e: IThermostatEvent) => {
-            console.log('message', e);
 			socket.send(JSON.stringify(e.topic) + " : " + e.message);
 		});
 	}
+});
+
+//TODO only for dev mode
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname+'/bootstrapper.html'));
 });
 
 app.post('/init', (req, res) => {
@@ -69,7 +74,15 @@ app.post('/init', (req, res) => {
 
 	thermostat = new Thermostat(configuration, tempReader, furnaceTrigger, null);
 
-	res.status(200).send();
+	res.status(200).send('initialized');
+});
+
+app.post('/reset', (req, res) => {
+    thermostat.stop();
+    thermostat = null;
+    res.status(200).send({
+        reset: true   
+    });
 });
 
 app.use((req, res, next) => {
@@ -84,7 +97,7 @@ app.use((req, res, next) => {
 app.post('/start', (req, res) => {
 	thermostat.start();
 
-    res.status(200).send();
+    res.status(200).send('started');
 });
 
 app.get('/target', (req, res) => {
@@ -94,7 +107,7 @@ app.get('/target', (req, res) => {
 app.post('/target', (req, res) => {
 	let newTarget = parseInt(req.body.target);
 	thermostat.setTarget(newTarget);
-	res.status(200).send();
+	res.status(200).send({target: thermostat.target});
 });
 
 app.get('/mode', (req, res) => {
@@ -104,7 +117,7 @@ app.get('/mode', (req, res) => {
 app.post('/mode', (req, res) => {
 	let newMode = (<any>ThermostatMode)[req.body.mode];
 	thermostat.setMode(newMode);
-	res.status(200).send();
+	res.status(200).send({mode: newMode});
 });
 
 
@@ -114,5 +127,5 @@ app.post('/mode', (req, res) => {
 // });
 
 server.listen(3000, () => {
-	console.log('Socket listening on port 3001');
+	console.log('Socket listening on port 3000');
 });

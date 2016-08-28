@@ -1,0 +1,139 @@
+<html>
+
+<head>
+    
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-T8Gy5hrqNKT+hzMclPo118YTQO6cYprQmhrYwIiQ/3axmI1hQomh7Ud2hPOy8SP1" crossorigin="anonymous">
+    <style>
+        #actions {
+            background-color: #ddd;
+            height: 100%;
+            padding: 10px;
+        }
+        #console {
+            background-color: #000;
+            color: #FFF;
+            height: 100%;
+            padding: 10px;
+            font-size: 12pt;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-xs-6">
+            <div id="actions">
+                <h3>API Actions</h3>
+                <button id='init' class='btn btn-primary btn-block' data-url='/init'>Init</button><br>
+                <button id='start' class='btn btn-primary btn-block' data-url='/start'>Start</button><br>
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="New Target">
+                    <span class="input-group-btn">
+                        <button id='setTemp' class='btn btn-primary' data-url='/target'>Set Target</button>
+                    </span>
+                </div>
+
+                <div class="input-group">
+                    <h4>Mode:</h4>
+                    <div class="btn-group" data-toggle="buttons">
+                        <label class="btn btn-primary active">
+                            <input type="radio" name="mode" value="heating" autocomplete="off" checked> Heating
+                        </label>
+                        <label class="btn btn-primary">
+                            <input type="radio" name="mode" value="cooling" id="option2" autocomplete="off"> Cooling
+                        </label>
+                    </div>
+                </div>
+
+                <br>
+                <button id='reset' class='btn btn-block btn-danger' data-url='/reset'>Reset</button><br>
+
+                <h3>Simulation Parameters</h3>
+                <div class="input-group">
+                    <span class="input-group-addon">Temp Change per Sec</span>
+                    <input type="text" class="form-control" aria-label="...">
+                    <div class="input-group-btn">
+                        <button class="btn btn-primary"><i class="fa fa-minus"></i>&nbsp;</button>
+                        <button class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xs-6">
+            <div id="console">
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</body>
+
+<script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+    <script   src="https://code.jquery.com/jquery-3.1.0.min.js"   integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s="   crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script>
+        $(function() {
+            let baseUrl = 'localhost:3000';
+            let wsUrl = 'ws://' + baseUrl;
+            let httpUrl = 'http://' + baseUrl;
+
+            function log(message, color) {
+                color = color || '#FFF';
+                let newDiv = $('<div></div>').css('color', color).text('> ' + message);
+                $('#console').prepend(newDiv);
+            }
+
+            function logError(message) {
+                log(message, '#ff0000');
+            }
+
+            function callApi(url, data) {
+                $.post(httpUrl + url, data)
+                    .done(function( data ) {
+                        log(JSON.stringify(data));
+                    })
+                    .fail(function(data) {
+                        logError(JSON.stringify(data.responseText));
+                    });
+            }
+
+            var socket = io.connect(wsUrl);
+            
+            socket.on('connect', function () {
+                log('connected!');
+            });
+            
+            socket.on('message', function (msg) {
+                log(msg);
+            });
+
+            $('#init').click(function() {
+                callApi('/init', {});
+            });
+
+            $('#start').click(function() {
+                callApi('/start', {});
+            });
+
+            $('#setTemp').click(function() {
+                callApi('/target', {
+                    target: $(this).val()
+                });
+            });
+
+            $('#reset').click(function() {
+                callApi('/reset', {});
+            })
+
+            $('input[type=radio][name=mode]').change(function() {
+                callApi('/mode', {
+                    mode: $(this).val()
+                });
+            });
+        });
+    </script>
+
+</html>
