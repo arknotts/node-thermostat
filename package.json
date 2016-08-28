@@ -7,7 +7,7 @@
     "build": "tsc",
     "test": "mocha src/core",
     "build-test": "npm run build && npm test",
-    "serve": "node src/api/server.js",
+    "serve": "node src/api/run.js",
     "build-serve": "npm run build && npm run serve"
   },
   "author": "",

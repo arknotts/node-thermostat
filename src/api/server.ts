@@ -1,5 +1,6 @@
 import express = require('express');
 import bodyParser = require('body-parser');
+import path = require('path');
 
 import { Thermostat } from '../core/thermostat';
 import { IThermostatConfiguration, ITempSensorConfiguration, ThermostatMode } from '../core/configuration';
@@ -8,124 +9,132 @@ import { ITempSensor, Dht11TempSensor } from '../core/tempSensor';
 import { ITrigger, FurnaceTrigger } from '../core/trigger';
 import { IThermostatEvent } from '../core/thermostatEvent';
 
+export class BaseServer {
 
-
-var app = express();
-var server = require('http').Server(app);
-var io = require('socket.io')(server);
-app.use(bodyParser.urlencoded({
-  extended: true
-}));
-let path = require('path');
-
-let thermostat: Thermostat;
-
-io.on('connection', function (socket: any) {
-	if(thermostat) {
-		thermostat.eventStream.subscribe((e: IThermostatEvent) => {
-			socket.send(JSON.stringify(e.topic) + " : " + e.message);
-		});
-	}
-});
-
-//TODO only for dev mode
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname+'/bootstrapper.html'));
-});
-
-app.post('/init', (req, res) => {
-
-    let passedConfiguration = req.body;
-
-    let mode: ThermostatMode = passedConfiguration.mode ? 
-                                (<any>ThermostatMode)[passedConfiguration.mode] :
-                                (<any>ThermostatMode)["Heating"];
+    app = express();
+    server = require('http').Server(this.app);
+    io = require('socket.io')(this.server);
     
-    let configDefaults = <IThermostatConfiguration> {
-        TargetRange: mode == ThermostatMode.Heating ? [60, 75] : [68, 80],
-        DefaultTarget: mode == ThermostatMode.Heating ? 69 : 75,
-        MaxOvershootTemp: 4,
-        MaxRunTime: 1800000,
-        MinDelayBetweenRuns: 600000,
-        TempEmitDelay: 300000
-    };
+    thermostat: Thermostat;
 
-    let tempSensorConfigDefaults = <ITempSensorConfiguration> {
-        TemperatureSensorPollDelay: 5000
-    };
+    constructor() {}
 
-	let configuration: IThermostatConfiguration = {
-        TargetRange: passedConfiguration.TargetRange || configDefaults.TargetRange,
-        Mode: mode,
-        DefaultTarget: passedConfiguration.DefaultTarget || configDefaults.DefaultTarget,
-        MaxOvershootTemp: passedConfiguration.MaxOvershootTemp || configDefaults.MaxOvershootTemp,
-        MaxRunTime: passedConfiguration.MaxRunTime || configDefaults.MaxRunTime,
-        MinDelayBetweenRuns: passedConfiguration.MinDelayBetweenRuns || configDefaults.MinDelayBetweenRuns,
-        TempEmitDelay: parseInt(passedConfiguration.TempEmitDelay) || configDefaults.TempEmitDelay,
-        TempSensorConfiguration: {
-            TemperatureSensorPollDelay: passedConfiguration.TemperatureSensorPollDelay || tempSensorConfigDefaults.TemperatureSensorPollDelay
-        }
-    };
-    console.log(configuration);
+    start() {
+        this.initApp();
+        this.listen();
+    }
+
+    initApp() {
+        this.app.use(bodyParser.urlencoded({
+            extended: true
+        }));
     
-	let tempSensor: ITempSensor = new Dht11TempSensor(configuration.TempSensorConfiguration);
-	let tempReader: ITempReader = new MovingAverageTempReader(tempSensor, 5);
-	let furnaceTrigger: ITrigger = new FurnaceTrigger();
 
-	thermostat = new Thermostat(configuration, tempReader, furnaceTrigger, null);
+        this.io.on('connection', function (socket: any) {
+            if(this.thermostat) {
+                this.thermostat.eventStream.subscribe((e: IThermostatEvent) => {
+                    socket.send(JSON.stringify(e.topic) + " : " + e.message);
+                });
+            }
+        });
 
-	res.status(200).send('initialized');
-});
+        //TODO only for dev mode
+        this.app.get('/', (req, res) => {
+            res.sendFile(path.join(__dirname+'/bootstrapper.html'));
+        });
 
-app.post('/reset', (req, res) => {
-    thermostat.stop();
-    thermostat = null;
-    res.status(200).send({
-        reset: true   
-    });
-});
+        this.app.post('/init', (req, res) => {
 
-app.use((req, res, next) => {
-	if(thermostat) {
-		next();
-	}
-	else {
-		res.status(500).send('Thermostat must be initialized first!');
-	}
-});
+            let passedConfiguration = req.body;
 
-app.post('/start', (req, res) => {
-	thermostat.start();
+            let mode: ThermostatMode = passedConfiguration.mode ? 
+                                        (<any>ThermostatMode)[passedConfiguration.mode] :
+                                        (<any>ThermostatMode)["Heating"];
+            
+            let configDefaults = <IThermostatConfiguration> {
+                TargetRange: mode == ThermostatMode.Heating ? [60, 75] : [68, 80],
+                DefaultTarget: mode == ThermostatMode.Heating ? 69 : 75,
+                MaxOvershootTemp: 4,
+                MaxRunTime: 1800000,
+                MinDelayBetweenRuns: 600000,
+                TempEmitDelay: 300000
+            };
 
-    res.status(200).send('started');
-});
+            let tempSensorConfigDefaults = <ITempSensorConfiguration> {
+                TemperatureSensorPollDelay: 5000
+            };
 
-app.get('/target', (req, res) => {
-	res.status(200).send(thermostat.target);
-});
+            let configuration: IThermostatConfiguration = {
+                TargetRange: passedConfiguration.TargetRange || configDefaults.TargetRange,
+                Mode: mode,
+                DefaultTarget: passedConfiguration.DefaultTarget || configDefaults.DefaultTarget,
+                MaxOvershootTemp: passedConfiguration.MaxOvershootTemp || configDefaults.MaxOvershootTemp,
+                MaxRunTime: passedConfiguration.MaxRunTime || configDefaults.MaxRunTime,
+                MinDelayBetweenRuns: passedConfiguration.MinDelayBetweenRuns || configDefaults.MinDelayBetweenRuns,
+                TempEmitDelay: parseInt(passedConfiguration.TempEmitDelay) || configDefaults.TempEmitDelay,
+                TempSensorConfiguration: {
+                    TemperatureSensorPollDelay: passedConfiguration.TemperatureSensorPollDelay || tempSensorConfigDefaults.TemperatureSensorPollDelay
+                }
+            };
+            console.log(configuration);
+            
+            let tempSensor: ITempSensor = new Dht11TempSensor(configuration.TempSensorConfiguration);
+            let tempReader: ITempReader = new MovingAverageTempReader(tempSensor, 5);
+            let furnaceTrigger: ITrigger = new FurnaceTrigger();
 
-app.post('/target', (req, res) => {
-	let newTarget = parseInt(req.body.target);
-	thermostat.setTarget(newTarget);
-	res.status(200).send({target: thermostat.target});
-});
+            this.thermostat = new Thermostat(configuration, tempReader, furnaceTrigger, null);
 
-app.get('/mode', (req, res) => {
-	res.status(200).send(thermostat.mode.toString());
-});
+            res.status(200).send('initialized');
+        });
 
-app.post('/mode', (req, res) => {
-	let newMode = (<any>ThermostatMode)[req.body.mode];
-	thermostat.setMode(newMode);
-	res.status(200).send({mode: newMode});
-});
+        this.app.post('/reset', (req, res) => {
+            this.thermostat.stop();
+            this.thermostat = null;
+            res.status(200).send({
+                reset: true   
+            });
+        });
 
+        this.app.use((req, res, next) => {
+            if(this.thermostat) {
+                next();
+            }
+            else {
+                res.status(500).send('Thermostat must be initialized first!');
+            }
+        });
 
+        this.app.post('/start', (req, res) => {
+            this.thermostat.start();
 
-// app.listen(3000, function () {
-//   console.log('Example app listening on port 3000!');
-// });
+            res.status(200).send('started');
+        });
 
-server.listen(3000, () => {
-	console.log('Socket listening on port 3000');
-});
+        this.app.get('/target', (req, res) => {
+            res.status(200).send(this.thermostat.target);
+        });
+
+        this.app.post('/target', (req, res) => {
+            let newTarget = parseInt(req.body.target);
+            this.thermostat.setTarget(newTarget);
+            res.status(200).send({target: this.thermostat.target});
+        });
+
+        this.app.get('/mode', (req, res) => {
+            res.status(200).send(this.thermostat.mode.toString());
+        });
+
+        this.app.post('/mode', (req, res) => {
+            let newMode = (<any>ThermostatMode)[req.body.mode];
+            this.thermostat.setMode(newMode);
+            res.status(200).send({mode: newMode});
+        });
+    }
+    
+    listen() {
+        this.server.listen(3000, () => {
+            console.log('Socket listening on port 3000');
+        });
+    }
+
+}
