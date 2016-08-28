@@ -8,7 +8,7 @@ export interface ITempSensor {
     pollSensor(): number;
 }
 
-export class Dht11TempSensor implements ITempSensor {
+export abstract class BaseTempSensor implements ITempSensor {
     private _start: boolean = false;
     private _timeoutId: any;
 
@@ -23,15 +23,10 @@ export class Dht11TempSensor implements ITempSensor {
     }
 
     stop() {
-        // if(this._observer != null) {
-        //     this._observer.onCompleted();
-        // }
         this._start = false;
     }
 
-    pollSensor(): number {
-        return 70;
-    }
+    abstract pollSensor(): number;
 
     private pollAndEmitTemperature(observer: Rx.Observer<number>): void {
         if(this._start) {
@@ -42,5 +37,16 @@ export class Dht11TempSensor implements ITempSensor {
             clearTimeout(this._timeoutId);
             observer.complete();
         }
+    }
+}
+
+export class Dht11TempSensor extends BaseTempSensor {
+
+    constructor(_configuration: ITempSensorConfiguration) {
+        super(_configuration);
+    }
+
+    pollSensor(): number {
+        return 70;
     }
 }
