@@ -51,12 +51,12 @@
                 <button id='reset' class='btn btn-block btn-danger' data-url='/reset'>Reset</button><br>
 
                 <h3>Simulation Parameters</h3>
-                <div class="input-group">
+                <div class="input-group" id="tempChangeSection">
                     <span class="input-group-addon">Temp Change per Sec</span>
-                    <input type="text" class="form-control" aria-label="...">
+                    <input type="text" class="form-control" aria-label="..." value="-.2">
                     <div class="input-group-btn">
-                        <button class="btn btn-primary"><i class="fa fa-minus"></i>&nbsp;</button>
-                        <button class="btn btn-primary"><i class="fa fa-plus"></i>&nbsp;</button>
+                        <button class="btn btn-primary" id="tempChangeDown"><i class="fa fa-minus"></i>&nbsp;</button>
+                        <button class="btn btn-primary" id="tempChangeUp"><i class="fa fa-plus"></i>&nbsp;</button>
                     </div>
                 </div>
             </div>
@@ -132,6 +132,23 @@
                 callApi('/mode', {
                     mode: $(this).val()
                 });
+            });
+
+            $('#tempChangeSection button').click(function() {
+                var input = $('#tempChangeSection input');
+                var currTempChange = parseFloat(input.val());
+                if($(this).attr('id') == 'tempChangeDown') {
+                    currTempChange -= .1;
+                }
+                else {
+                    currTempChange += .1;
+                }
+
+                callApi('/tempChangePerSecond', {
+                    tempChangePerSecond: currTempChange
+                });
+
+                input.val(currTempChange);
             });
         });
     </script>

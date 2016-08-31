@@ -132,6 +132,10 @@ export class Thermostat {
         this._currentTrigger = mode == ThermostatMode.Heating ? this._furnaceTrigger : this._acTrigger;
     }
 
+    get tempReader(): ITempReader {
+        return this._tempReader;
+    }
+
     private targetIsWithinBounds(target: number) {
         return target >= this.configuration.TargetRange[0] && target <= this.configuration.TargetRange[1];
     }

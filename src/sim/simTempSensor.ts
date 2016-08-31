@@ -6,7 +6,7 @@ export class SimTempSensor extends BaseTempSensor {
     currTemp: number;
     lastTempDropMillis: number;
 
-    constructor(_tempSensorConfiguration: ITempSensorConfiguration, private _tempChangePerSecond: number) {
+    constructor(_tempSensorConfiguration: ITempSensorConfiguration, public tempChangePerSecond: number) {
         super(_tempSensorConfiguration);
     }
     
@@ -15,10 +15,12 @@ export class SimTempSensor extends BaseTempSensor {
         let diff = nowMillis - this.lastTempDropMillis;
 
         if(diff > 1) {
-            this.currTemp += this._tempChangePerSecond;
+            this.currTemp += this.tempChangePerSecond;
             this.lastTempDropMillis = nowMillis;
         }
 
         return this.currTemp;
     }
+
+
 }
