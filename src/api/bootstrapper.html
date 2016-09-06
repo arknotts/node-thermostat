@@ -93,7 +93,9 @@
             function callApi(url, data) {
                 $.post(httpUrl + url, data)
                     .done(function( data ) {
-                        log(JSON.stringify(data));
+						if(data) {
+                        	log(JSON.stringify(data));
+						}
                     })
                     .fail(function(data) {
                         logError(JSON.stringify(data.responseText));
@@ -120,7 +122,7 @@
 
             $('#setTemp').click(function() {
                 callApi('/target', {
-                    target: $(this).val()
+                    target: $(this).parents('.input-group').find('input[type=text]').val()
                 });
             });
 

@@ -3,12 +3,12 @@ import bodyParser = require('body-parser');
 
 import { Thermostat } from '../core/thermostat';
 import { IThermostatConfiguration, ITempSensorConfiguration, ThermostatMode } from '../core/configuration';
-import { ITempReader, MovingAverageTempReader } from '../core/tempReader';
-import { ITempSensor, Dht11TempSensor } from '../core/tempSensor';
-import { ITrigger, FurnaceTrigger, AcTrigger } from '../core/trigger';
+import { ITempReader } from '../core/tempReader';
+import { ITempSensor } from '../core/tempSensor';
+import { ITrigger } from '../core/trigger';
 import { IThermostatEvent } from '../core/thermostatEvent';
 
-export class BaseServer {
+export abstract class BaseServer {
 
     app = express();
     server = require('http').Server(this.app);
@@ -25,67 +25,16 @@ export class BaseServer {
         this.listen();
     }
 
-    buildConfiguration(passedConfiguration: any): IThermostatConfiguration {
-        let mode: ThermostatMode = passedConfiguration.mode ? 
-                                        (<any>ThermostatMode)[passedConfiguration.mode] :
-                                        (<any>ThermostatMode)["Heating"];
-            
-        let configDefaults = <IThermostatConfiguration> {
-            TargetRange: mode == ThermostatMode.Heating ? [60, 75] : [68, 80],
-            DefaultTarget: mode == ThermostatMode.Heating ? 69 : 75,
-            MaxOvershootTemp: 4,
-            MaxRunTime: 1800000,
-            MinDelayBetweenRuns: 600000,
-            TempEmitDelay: 300000
-        };
-
-        let tempSensorConfigDefaults = <ITempSensorConfiguration> {
-            TemperatureSensorPollDelay: 5000
-        };
-
-        let configuration: IThermostatConfiguration = {
-            TargetRange: passedConfiguration.TargetRange || configDefaults.TargetRange,
-            Mode: mode,
-            DefaultTarget: passedConfiguration.DefaultTarget || configDefaults.DefaultTarget,
-            MaxOvershootTemp: passedConfiguration.MaxOvershootTemp || configDefaults.MaxOvershootTemp,
-            MaxRunTime: passedConfiguration.MaxRunTime || configDefaults.MaxRunTime,
-            MinDelayBetweenRuns: passedConfiguration.MinDelayBetweenRuns || configDefaults.MinDelayBetweenRuns,
-            TempEmitDelay: parseInt(passedConfiguration.TempEmitDelay) || configDefaults.TempEmitDelay,
-            TempSensorConfiguration: {
-                TemperatureSensorPollDelay: passedConfiguration.TemperatureSensorPollDelay || tempSensorConfigDefaults.TemperatureSensorPollDelay
-            }
-        };
-
-        return configuration;
-    }
-
-    buildTempReader(tempSensorConfiguration: ITempSensorConfiguration): ITempReader {
-        let tempSensor: ITempSensor = new Dht11TempSensor(tempSensorConfiguration);
-        return new MovingAverageTempReader(tempSensor, 5);
-    }
-
-    buildFurnaceTrigger(): ITrigger {
-        return new FurnaceTrigger();
-    }
-
-    buildAcTrigger(): ITrigger {
-        return new AcTrigger();
-    }
+	abstract buildConfiguration(passedConfiguration: any): IThermostatConfiguration;
+	abstract buildTempReader(tempSensorConfiguration: ITempSensorConfiguration): ITempReader;
+	abstract buildFurnaceTrigger(): ITrigger;
+	abstract buildAcTrigger(): ITrigger;
 
     preThermostatInitRoutes() {
         
         this.app.use(bodyParser.urlencoded({
             extended: true
         }));
-    
-
-        this.io.on('connection', function (socket: any) {
-            if(this.thermostat) {
-                this.thermostat.eventStream.subscribe((e: IThermostatEvent) => {
-                    socket.send(JSON.stringify(e.topic) + " : " + e.message);
-                });
-            }
-        });
     }
 
     initThermostatRoute() {
@@ -99,6 +48,10 @@ export class BaseServer {
             let acTrigger: ITrigger = this.buildAcTrigger();
 
             this.thermostat = new Thermostat(configuration, tempReader, furnaceTrigger, acTrigger);
+
+			this.thermostat.eventStream.subscribe((e: IThermostatEvent) => {
+				this.io.sockets.send(JSON.stringify(e.topic) + " : " + e.message);
+			});
 
             res.status(200).send('initialized');
         });
@@ -135,7 +88,7 @@ export class BaseServer {
         this.app.post('/target', (req, res) => {
             let newTarget = parseInt(req.body.target);
             this.thermostat.setTarget(newTarget);
-            res.status(200).send({target: this.thermostat.target});
+            res.status(200).send();
         });
 
         this.app.get('/mode', (req, res) => {
