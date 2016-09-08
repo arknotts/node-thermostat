@@ -1,3 +1,4 @@
+import fs = require('fs');
 import path = require('path');
 
 import { BaseServer } from './baseServer';
@@ -12,22 +13,31 @@ import { SimTrigger } from '../sim/simTrigger';
 export class SimServer extends BaseServer {
     private _simTempSensor: SimTempSensor;
 
-    preThermostatInitRoutes() {
-        super.preThermostatInitRoutes();
-
-        this.app.get('/', (req, res) => {
-            res.sendFile(path.join(__dirname+'/bootstrapper.html'));
-        });
-    }
+	httpHandler(req: any, res: any) {
+		fs.readFile(path.join(__dirname+'/bootstrapper.html'), function(error, content) {
+			if (error) {
+				res.writeHead(500);
+				res.end();
+			}
+			else {
+				res.writeHead(200, { 'Content-Type': 'text/html' });
+				res.end(content, 'utf-8');
+			}
+		});
+	}
 
     postThermostatInitRoutes() {
         super.postThermostatInitRoutes();
 
-        this.app.post('/tempChangePerSecond', (req, res) => {
-			let tempChange = parseFloat(req.body.tempChangePerSecond);
-            this._simTempSensor.tempChangePerSecond = tempChange;
-            res.status(200).send('Temp change per second updated to: ' + tempChange);
-        });
+		this.router.on('/tempChangePerSecond', (socket: any, args: any, next: any) => {
+			if(args[1] && args[1].tempChangePerSecond) {
+				let tempChange = parseFloat(args[1].tempChangePerSecond);
+            	this._simTempSensor.tempChangePerSecond = tempChange;
+			}
+			else {
+				next('Invalid temp change per second call');
+			}
+		});
     }
 
 	buildConfiguration(passedConfiguration: any): IThermostatConfiguration {

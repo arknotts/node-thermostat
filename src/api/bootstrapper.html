@@ -72,13 +72,27 @@
 </body>
 
 <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
-    <script   src="https://code.jquery.com/jquery-3.1.0.min.js"   integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s="   crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.1.0.min.js"   integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s="   crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
     <script>
         $(function() {
             let baseUrl = 'localhost:3000';
             let wsUrl = 'ws://' + baseUrl;
             let httpUrl = 'http://' + baseUrl;
+
+            var socket = io.connect(wsUrl);
+
+			socket.on('connect', function () {
+                log('connected!');
+            });
+
+			socket.on('message', (payload) => {
+				log(payload);
+			});
+
+			socket.on('err', (payload) => {
+				logError(payload.error);
+			});
 
             function log(message, color) {
                 color = color || '#FFF';
@@ -91,26 +105,8 @@
             }
 
             function callApi(url, data) {
-                $.post(httpUrl + url, data)
-                    .done(function( data ) {
-						if(data) {
-                        	log(JSON.stringify(data));
-						}
-                    })
-                    .fail(function(data) {
-                        logError(JSON.stringify(data.responseText));
-                    });
+				socket.emit(url, data);
             }
-
-            var socket = io.connect(wsUrl);
-            
-            socket.on('connect', function () {
-                log('connected!');
-            });
-            
-            socket.on('message', function (msg) {
-                log(msg);
-            });
 
             $('#init').click(function() {
                 callApi('/init', {});

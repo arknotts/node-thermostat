@@ -8,11 +8,13 @@ import { ITempSensor } from '../core/tempSensor';
 import { ITrigger } from '../core/trigger';
 import { IThermostatEvent } from '../core/thermostatEvent';
 
+const serverPort: number = 3000;
+
 export abstract class BaseServer {
 
-    app = express();
-    server = require('http').Server(this.app);
-    io = require('socket.io')(this.server);
+    app = require('http').createServer(this.httpHandler);
+    io = require('socket.io')(this.app);
+	router = require('socket.io-events')();
     
     thermostat: Thermostat;
 
@@ -30,17 +32,19 @@ export abstract class BaseServer {
 	abstract buildFurnaceTrigger(): ITrigger;
 	abstract buildAcTrigger(): ITrigger;
 
+	httpHandler(req: any, res: any) {
+		res.send('<h1>Welcome to node-thermostat.</h1><h3>Connect via a web socket at ws://localhost:' + serverPort);
+	}
+
     preThermostatInitRoutes() {
-        
-        this.app.use(bodyParser.urlencoded({
-            extended: true
-        }));
+		this.router.use((socket: any, args: any, next: any) => {
+			next();
+        });
     }
 
     initThermostatRoute() {
-        this.app.post('/init', (req, res) => {
-
-            let passedConfiguration = req.body;
+		this.router.on('/init', (socket: any, args: any, next: any) => {
+			let passedConfiguration = args[1];
 
             let configuration = this.buildConfiguration(passedConfiguration);            
             let tempReader = this.buildTempReader(configuration.TempSensorConfiguration);
@@ -52,59 +56,65 @@ export abstract class BaseServer {
 			this.thermostat.eventStream.subscribe((e: IThermostatEvent) => {
 				this.io.sockets.send(JSON.stringify(e.topic) + " : " + e.message);
 			});
-
-            res.status(200).send('initialized');
-        });
+		});
     }
 
     postThermostatInitRoutes() {
-        this.app.post('/reset', (req, res) => {
+        this.router.on('/reset', (socket: any, args: any, next: any) => {
             this.thermostat.stop();
             this.thermostat = null;
-            res.status(200).send({
-                reset: true   
-            });
         });
 
-        this.app.use((req, res, next) => {
+        this.router.use((socket: any, args: any, next: any) => {
             if(this.thermostat) {
                 next();
             }
             else {
-                res.status(500).send('Thermostat must be initialized first!');
+                socket.emit('err', { error: 'Thermostat must be initialized first!' });
             }
         });
 
-        this.app.post('/start', (req, res) => {
+        this.router.on('/start', (socket: any, args: any, next: any) => {
             this.thermostat.start();
-
-            res.status(200).send('started');
         });
 
-        this.app.get('/target', (req, res) => {
-            res.status(200).send(this.thermostat.target);
+        this.router.on('/target', (socket: any, args: any, next: any) => {
+			let payload = args[1];
+			if(payload) {
+				if(payload.target) {
+					this.thermostat.setTarget(payload.target);
+				}
+				else {
+					next('Invalid set target call');
+				}
+			}
+			else {
+				socket.emit(args.shift(), { target: this.thermostat.target });
+			}
         });
 
-        this.app.post('/target', (req, res) => {
-            let newTarget = parseInt(req.body.target);
-            this.thermostat.setTarget(newTarget);
-            res.status(200).send();
-        });
-
-        this.app.get('/mode', (req, res) => {
-            res.status(200).send(this.thermostat.mode.toString());
-        });
-
-        this.app.post('/mode', (req, res) => {
-            let newMode = (<any>ThermostatMode)[req.body.mode];
-            this.thermostat.setMode(newMode);
-            res.status(200).send({mode: newMode});
+        this.router.on('/mode', (socket: any, args: any, next: any) => {
+			let payload = args[1];
+			if(payload) {
+				if(payload.mode) {
+					let newMode = (<any>ThermostatMode)[payload.mode];
+					this.thermostat.setMode(newMode);
+				}
+				else {
+					next('Invalid set mode call');
+				}
+			}
+			else {
+				socket.emit(args.shift(), { mode: this.thermostat.mode });
+			}
         });
     }
     
     listen() {
-        this.server.listen(3000, () => {
-            console.log('Socket listening on port 3000');
+		this.io.use(this.router);
+
+        this.app.listen(serverPort, () => {
+            console.log('Socket listening on port ' + serverPort);
         });
     }
 
