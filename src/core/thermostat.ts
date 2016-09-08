@@ -27,6 +27,7 @@ export class Thermostat {
 		this._eventObservers = [];
         this.eventStream = Rx.Observable.create((observer: Rx.Observer<IThermostatEvent>) => {
             this._eventObservers.push(observer);
+			this.emitStatusEvent('Initialized');
         }); 
     }
 
@@ -42,6 +43,8 @@ export class Thermostat {
             (error: string) => { console.error('Error reading temperature: %s', error); },
             () => { this.emitComplete(); }
         );
+
+		this.emitStatusEvent('Started');
 
         return this.eventStream;
     }
@@ -169,6 +172,14 @@ export class Thermostat {
             type: ThermostatEventType.Message,
             topic: ['thermostat', 'target'],
             message: target.toString()
+        });
+    }
+
+	private emitStatusEvent(message: string) {
+        this.emitEvent(<IThermostatEvent>{
+            type: ThermostatEventType.Message,
+            topic: ['thermostat', 'status'],
+            message: message
         });
     }
 
